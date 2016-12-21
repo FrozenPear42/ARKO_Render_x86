@@ -1,13 +1,12 @@
 
 global  multiplyMat4
 global  multiplyMatVec4
+global  updateRotation
+global  updatePosition
+global  normalizeVert
 
-extern rotationMatrix       ;double 16
-extern translationMatrix    ;double 16
-extern projectionMatrix     ;double 16
-extern MVPMatrix            ;double 16
-extern verts                ;double
-extern vertsResult
+section .data
+const_fp_half   dd  0.5
 
 section .text
 
@@ -143,4 +142,68 @@ extractps   [eax + 0Ch], xmm0, 0x01
 mov         esp, ebp
 pop         ebp
 ret
+
+updateRotation:
+push        ebp
+mov         ebp, esp
+
+mov         esp, ebp
+pop         ebp
+ret
+
+updatePosition:
+push        ebp
+mov         ebp, esp
+
+mov         esp, ebp
+pop         ebp
+ret
+
+normalizeVert:
+push        ebp
+mov         ebp, esp
+;W-NORMALIZE
+mov         eax, dword [esp + 08h]  ;vector addr to eax
+
+fld         dword [eax + 0Ch]
+fabs
+fstp        dword [eax + 0Ch]
+
+fld         dword [eax + 00h]      ;load x to st(0)
+fdiv        dword [eax + 0Ch]
+fstp        dword [eax + 00h]
+
+fld         dword [eax + 04h]      ;load y to st(0)
+fdiv        dword [eax + 0Ch]
+fstp        dword [eax + 04h]
+
+fld         dword [eax + 04h]      ;load z to st(0)
+fdiv        dword [eax + 0Ch]
+fstp        dword [eax + 04h]
+
+fld         dword [eax + 0Ch]      ;load w to st(0)
+fdiv        dword [eax + 0Ch]
+fstp        dword [eax + 0Ch]
+; CLIP TO VIEWPORT
+fld1        
+fadd        dword [eax + 00h]      ;1 + x
+fmul        dword [esp + 0Ch]      ;* width
+fmul        dword [const_fp_half]
+fstp        dword [eax + 00h]
+
+fld1        
+fadd        dword [eax + 04h]      ;1 + y
+fmul        dword [esp + 10h]      ;* height
+fmul        dword [const_fp_half]
+fstp        dword [eax + 04h]
+
+fld1        
+fadd        dword [eax + 08h]      ;1 + z
+fmul        dword [const_fp_half]
+fstp        dword [eax + 08h]
+
+mov         esp, ebp
+pop         ebp
+ret
+
 render:

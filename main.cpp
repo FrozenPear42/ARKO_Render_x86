@@ -15,17 +15,17 @@ float rotationMatrix[16] = {
 };
 
 float translationMatrix[16] = {
-        20, 0, 0, 100,
-        0, 20, 0, 100,
-        0, 0, 20, 100,
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 5,
         0, 0, 0, 1,
 };
 
 float projectionMatrix[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
+        1.000000, 0.000000, 0.000000, 0.0000000,
+        0.000000, 1.000000, 0.000000, 0.0000000,
+        0.000000, 0.000000, 1.000400, -0.200040,
+        0.000000, 0.000000, 1.000000, 0.0000000,
 };
 
 float MVPMatrix[16] = {0};
@@ -58,6 +58,24 @@ uint8_t edges[12][2] = {
         {3, 7},
 };
 
+sf::Color edgesColor[12] = {
+        sf::Color(0xFF, 0x55, 0xCC),
+        sf::Color(0xFF, 0x55, 0xCC),
+        sf::Color(0xFF, 0x55, 0xCC),
+        sf::Color(0xFF, 0x55, 0xCC),
+        sf::Color(0x55, 0x55, 0xCC),
+        sf::Color(0x55, 0x55, 0xCC),
+        sf::Color(0x55, 0x55, 0xCC),
+        sf::Color(0x55, 0x55, 0xCC),
+        sf::Color(0xFF, 0xCC, 0x00),
+        sf::Color(0xFF, 0xCC, 0x00),
+        sf::Color(0xFF, 0xCC, 0x00),
+        sf::Color(0xFF, 0xCC, 0x00),
+};
+
+const float width = 512;
+const float height = 512;
+
 float rotation[3] = {0};
 float position[3] = {0};
 const float rotationSpeed = 0.1;
@@ -66,6 +84,9 @@ const float movementSpeed = 0.1;
 extern "C" {
 void multiplyMat4(float* result, float* A, float* B);
 void multiplyMatVec4(float* result, float* A, float* V);
+void updateRotation();
+void updatePosition();
+void normalizeVert(float* V, float width, float height);
 }
 
 void rotate(float x, float y, float z);
@@ -76,6 +97,7 @@ void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
     rotation[1] += y * rotationSpeed;
     rotation[2] += z * rotationSpeed;
+    updateRotation();
     std::cout << rotation[0] << " " << rotation[1] << " " << rotation[2] << '\n';
 }
 
@@ -83,14 +105,8 @@ void move(float x, float y, float z) {
     position[0] += x * movementSpeed;
     position[1] += y * movementSpeed;
     position[2] += z * movementSpeed;
+    updatePosition();
     std::cout << position[0] << " " << position[1] << " " << position[2] << '\n';
-}
-
-void render() {
-    multiplyMat4(MVPMatrix, rotationMatrix, translationMatrix);
-    multiplyMat4(MVPMatrix, projectionMatrix, MVPMatrix);
-    for (int i = 0; i < 8; i++)
-        multiplyMatVec4(vertsResult[i], MVPMatrix, verts[i]);
 }
 
 void printMatrix(float* pMatrix) {
@@ -103,19 +119,19 @@ void printMatrix(float* pMatrix) {
     std::cout << "\n";
 }
 
-int main() {
-    sf::Image image;
-    sf::RenderWindow window(sf::VideoMode(512, 512), sf::String('a'));
-
-    printMatrix(MVPMatrix);
-    printMatrix(rotationMatrix);
-    printMatrix(translationMatrix);
-
+void render() {
     multiplyMat4(MVPMatrix, rotationMatrix, translationMatrix);
+    multiplyMat4(MVPMatrix, projectionMatrix, MVPMatrix);
+    for (int i = 0; i < 8; i++) {
+        multiplyMatVec4(vertsResult[i], MVPMatrix, verts[i]);
+        normalizeVert(vertsResult[i], width, height);
+    }
+}
 
-    printMatrix(MVPMatrix);
-    printMatrix(rotationMatrix);
-    printMatrix(translationMatrix);
+int main() {
+
+    sf::Image image;
+    sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
 
     while (window.isOpen()) {
         sf::Event event;
@@ -174,13 +190,13 @@ int main() {
             move(0, 0, -1);
         }
 
-        window.clear(sf::Color(0x33, 0x44, 0xAA));
+        window.clear(sf::Color(0x11, 0x22, 0x44));
 
         render();
         for (int i = 0; i < 12; i++) {
             sf::Vertex line[] = {
-                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][0]][0], vertsResult[edges[i][0]][1]), sf::Color::White),
-                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][1]][0], vertsResult[edges[i][1]][1]), sf::Color::White)
+                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][0]][0], vertsResult[edges[i][0]][1]), edgesColor[i]),
+                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][1]][0], vertsResult[edges[i][1]][1]), edgesColor[i]),
             };
             window.draw(line, 2, sf::Lines);
         }
