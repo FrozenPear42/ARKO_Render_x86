@@ -1,24 +1,36 @@
 #include <iostream>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window.hpp>
+#include <SFML/Graphics/Shape.hpp>
 
-#define LOG(MSG)    std::cout << #MSG << '\n';
+#define LOG(MSG) std::cout << #MSG << '\n';
 
-sf::Uint8 pixels[512 * 512 * 4] = {0};
+uint8_t pixels[512 * 512 * 4] = {0};
 
-double rotationMatrix[16] = {0};
-
-double translationMatrix[16] = {0};
-
-double projectionMatrix[16] = {1, 0, 0, 0,
-                               0, 1, 0, 0,
-                               0, 0, 1, 0,
-                               0, 0, 0, 1,
+float rotationMatrix[16] = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
 };
 
-double MVPMatrix[16] = {0};
+float translationMatrix[16] = {
+        20, 0, 0, 100,
+        0, 20, 0, 100,
+        0, 0, 20, 100,
+        0, 0, 0, 1,
+};
 
-double verts[8][4] = {
+float projectionMatrix[16] = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+};
+
+float MVPMatrix[16] = {0};
+
+float verts[8][4] = {
         {-1, -1, -1, 1},
         {-1, 1,  -1, 1},
         {1,  1,  -1, 1},
@@ -29,7 +41,7 @@ double verts[8][4] = {
         {1,  -1, 1,  1},
 };
 
-double vertsResult[8][4] = {0};
+float vertsResult[8][4] = {0};
 
 uint8_t edges[12][2] = {
         {0, 1},
@@ -46,37 +58,64 @@ uint8_t edges[12][2] = {
         {3, 7},
 };
 
-double rotation[3] = {0};
-double position[3] = {0};
-const double rotationSpeed = 0.1;
-const double movementSpeed = 0.1;
+float rotation[3] = {0};
+float position[3] = {0};
+const float rotationSpeed = 0.1;
+const float movementSpeed = 0.1;
 
-void rotate(double x, double y, double z);
+extern "C" {
+void multiplyMat4(float* result, float* A, float* B);
+void multiplyMatVec4(float* result, float* A, float* V);
+}
 
-void move(double x, double y, double z);
+void rotate(float x, float y, float z);
 
-void multiplyMat4(double* result, double* A, double* B);
+void move(float x, float y, float z);
 
-void multiplyMatVec4(double* result, double* A, double* V);
-
-
-void rotate(double x, double y, double z) {
+void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
     rotation[1] += y * rotationSpeed;
     rotation[2] += z * rotationSpeed;
     std::cout << rotation[0] << " " << rotation[1] << " " << rotation[2] << '\n';
 }
 
-void move(double x, double y, double z) {
+void move(float x, float y, float z) {
     position[0] += x * movementSpeed;
     position[1] += y * movementSpeed;
     position[2] += z * movementSpeed;
     std::cout << position[0] << " " << position[1] << " " << position[2] << '\n';
 }
 
+void render() {
+    multiplyMat4(MVPMatrix, rotationMatrix, translationMatrix);
+    multiplyMat4(MVPMatrix, projectionMatrix, MVPMatrix);
+    for (int i = 0; i < 8; i++)
+        multiplyMatVec4(vertsResult[i], MVPMatrix, verts[i]);
+}
+
+void printMatrix(float* pMatrix) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << pMatrix[4 * i + j] << "\t";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+}
+
 int main() {
     sf::Image image;
     sf::RenderWindow window(sf::VideoMode(512, 512), sf::String('a'));
+
+    printMatrix(MVPMatrix);
+    printMatrix(rotationMatrix);
+    printMatrix(translationMatrix);
+
+    multiplyMat4(MVPMatrix, rotationMatrix, translationMatrix);
+
+    printMatrix(MVPMatrix);
+    printMatrix(rotationMatrix);
+    printMatrix(translationMatrix);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -135,12 +174,18 @@ int main() {
             move(0, 0, -1);
         }
 
+        window.clear(sf::Color(0x33, 0x44, 0xAA));
 
-        window.clear(sf::Color(0xAA, 0xBB, 0xCC));
-//        multiplyMat4(MVPMatrix, rotationMatrix, translationMatrix);
-        image.create(512, 512, pixels);
+        render();
+        for (int i = 0; i < 12; i++) {
+            sf::Vertex line[] = {
+                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][0]][0], vertsResult[edges[i][0]][1]), sf::Color::White),
+                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][1]][0], vertsResult[edges[i][1]][1]), sf::Color::White)
+            };
+            window.draw(line, 2, sf::Lines);
+        }
+        //image.create(512, 512, pixels);
         window.display();
-
     }
 
     return 0;

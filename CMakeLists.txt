@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.5)
 set(PROJECT_NAME ARKO_Render_x86)
+set(CMAKE_PROJECT_NAME ${PROJECT_NAME})
 project(${PROJECT_NAME})
 
 set(CMAKE_CXX_STANDARD 14)
