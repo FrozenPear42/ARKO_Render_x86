@@ -7,6 +7,7 @@ global  normalizeVert
 
 section .data
 const_fp_half   dd  0.5
+const_fp_180    dd  180.0
 
 section .text
 
@@ -153,16 +154,25 @@ mov         ebx, dword [ebp + 0Ch] ;rotation addr
 sub         esp, 18h ;6*4 for sin cos
 
 fld         dword [ebx + 00h]
+fldpi
+fmulp
+fdiv        dword [const_fp_180]
 fsincos
 fstp        dword [ebp - 04h] ; cos(x)
 fstp        dword [ebp - 08h] ; sin(x)
 
 fld         dword [ebx + 04h]
+fldpi
+fmulp
+fdiv        dword [const_fp_180]
 fsincos
 fstp        dword [ebp - 0Ch] ; cos(y)
 fstp        dword [ebp - 10h] ; sin(y)
 
 fld         dword [ebx + 08h]
+fldpi
+fmulp
+fdiv        dword [const_fp_180]
 fsincos
 fstp        dword [ebp - 14h] ; cos(z)
 fstp        dword [ebp - 18h] ; sin(z)
@@ -170,7 +180,7 @@ fstp        dword [ebp - 18h] ; sin(z)
 ;#############################################################################################
 ;# cos(y)cos(z)   sin(x)sin(y)cos(z) - cos(x)sin(z)   cos(x)sin(y)cos(z) + sin(x)sin(z)  0   #
 ;# cos(y)sin(z)   sin(x)sin(y)sin(z) + cos(x)cos(z)   cos(x)sin(y)sin(z) - sin(x)cos(z)  0   #
-;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)            0   #
+;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)            0    #
 ;#      0                       0                                     0                  1   #
 ;#############################################################################################
 

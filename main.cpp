@@ -1,12 +1,18 @@
 #include <iostream>
+#include <sstream>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include <iomanip>
 
-#define LOG(MSG) std::cout << #MSG << '\n';
+const float width = 512;
+const float height = 512;
+const float fov = 90;
+const float near = 0.1;
+const float far = 500;
 
-uint8_t pixels[512 * 512 * 4] = {0};
+uint8_t pixels[(int) width * (int) height * 4] = {0};
 
 float rotationMatrix[16] = {
         1, 0, 0, 0,
@@ -74,13 +80,11 @@ sf::Color edgesColor[12] = {
         sf::Color(0xFF, 0xCC, 0x00),
 };
 
-const float width = 512;
-const float height = 512;
 
 float rotation[3] = {0, 0, 0};
 float position[3] = {0, 0, 5};
-const float rotationSpeed = 0.01;
-const float movementSpeed = 0.01;
+const float rotationSpeed = 0.05;
+const float movementSpeed = 0.005;
 
 extern "C" {
 void multiplyMat4(float* result, float* A, float* B);
@@ -93,6 +97,11 @@ void normalizeVert(float* V, float width, float height);
 void rotate(float x, float y, float z);
 
 void move(float x, float y, float z);
+
+void setRotation(float x, float y, float z);
+
+void setPosition(float x, float y, float z);
+
 
 void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
@@ -107,6 +116,21 @@ void move(float x, float y, float z) {
     position[2] += z * movementSpeed;
     updatePosition(translationMatrix, position);
 }
+
+void setRotation(float x, float y, float z) {
+    rotation[0] = x;
+    rotation[1] = y;
+    rotation[2] = z;
+    updateRotation(rotationMatrix, rotation);
+}
+
+void setPosition(float x, float y, float z) {
+    position[0] = x;
+    position[1] = y;
+    position[2] = z;
+    updatePosition(translationMatrix, position);
+}
+
 
 void printMatrix(float* pMatrix) {
     for (int i = 0; i < 4; i++) {
@@ -139,19 +163,33 @@ int main() {
     sf::Image image;
     sf::Text rotationLabel;
     sf::Text positionLabel;
+    sf::Text verticesLabel;
+    sf::Text MVPMatrixLabel;
     sf::Font font;
     sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
 
     if (!font.loadFromFile("fira.ttf"))
         throw std::runtime_error("Ups, no font...");
+
+    verticesLabel.setCharacterSize(14);
+    verticesLabel.setFont(font);
+    verticesLabel.setColor(sf::Color::White);
+    verticesLabel.setPosition(0, 0);
+
+    MVPMatrixLabel.setCharacterSize(14);
+    MVPMatrixLabel.setFont(font);
+    MVPMatrixLabel.setColor(sf::Color::White);
+    MVPMatrixLabel.setPosition(0, 160);
+
     rotationLabel.setCharacterSize(14);
-    positionLabel.setCharacterSize(14);
     rotationLabel.setFont(font);
-    positionLabel.setFont(font);
     rotationLabel.setColor(sf::Color::White);
+    rotationLabel.setPosition(0, height - 40);
+
+    positionLabel.setCharacterSize(14);
+    positionLabel.setFont(font);
     positionLabel.setColor(sf::Color::White);
-    rotationLabel.setPosition(0, 470);
-    positionLabel.setPosition(0, 490);
+    positionLabel.setPosition(0, height - 20);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -162,27 +200,27 @@ int main() {
 
         /* rotation */
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-            rotate(1, 0, 0);
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
             rotate(-1, 0, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            rotate(0, -1, 0);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+            rotate(1, 0, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
             rotate(0, 1, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
-            rotate(0, 0, 1);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            rotate(0, -1, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
             rotate(0, 0, -1);
+        }
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+            rotate(0, 0, 1);
         }
 
         /* position */
@@ -202,13 +240,19 @@ int main() {
             move(1, 0, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
             move(0, 0, 1);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
             move(0, 0, -1);
         }
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+            setPosition(0, 0, 5);
+            setRotation(0, 0, 0);
+        }
+
 
         window.clear(sf::Color(0x11, 0x22, 0x44));
 
@@ -220,15 +264,41 @@ int main() {
             };
             window.draw(line, 2, sf::Lines);
         }
-        positionLabel.setString(
-                "Position: x " + std::to_string(position[0]) + "\ty " + std::to_string(position[1]) + "\tz " +
-                std::to_string(position[2]));
+
+        std::stringstream s;
+        s.precision(4);
+        s << std::fixed;
+        s << "Position: x:" << std::setw(10) << position[0] << "  y:" << std::setw(10) << position[1] << "  z:"
+          << std::setw(10) << position[2];
+        positionLabel.setString(s.str());
+        s.str("");
+        s << "Rotation: x:" << std::setw(10) << rotation[0] << "  y:" << std::setw(10) << rotation[1] << "  z:"
+          << std::setw(10) << rotation[2];
+        rotationLabel.setString(s.str());
         window.draw(positionLabel);
-        rotationLabel.setString(
-                "Rotation: x " + std::to_string(rotation[0]) + "\ty " + std::to_string(rotation[1]) + "\tz " +
-                std::to_string(rotation[2]));
         window.draw(rotationLabel);
-        //image.create(512, 512, pixels);
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tab)) {
+            s.str("");
+            s << "Vertices:\n";
+            for (int i = 0; i < 8; ++i)
+                s << "x: " << std::setw(10) << vertsResult[i][0] << " y: " << std::setw(10) << vertsResult[i][1]
+                  << " z: " << std::setw(10) << vertsResult[i][2] << "\n";
+            verticesLabel.setString(s.str());
+            window.draw(verticesLabel);
+            s.str("");
+            s << "MVP Matrix:\n";
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    s << std::setw(8) << MVPMatrix[4 * i + j] << "\t";
+                }
+                s << "\n";
+            }
+            s << "\n";
+            MVPMatrixLabel.setString(s.str());
+            window.draw(MVPMatrixLabel);
+        }
+
         window.display();
     }
 
