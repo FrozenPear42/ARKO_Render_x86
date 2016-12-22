@@ -13,9 +13,9 @@ section .text
 multiplyMat4:
 push        ebp
 mov         ebp, esp
-mov         eax, dword [esp + 08h]   ;eax <- destination
-mov         ebx, dword [esp + 0Ch]   ;ebx <- matrixA
-mov         ecx, dword [esp + 10h]   ;ecx <- matrixB
+mov         eax, dword [ebp + 08h]   ;eax <- destination
+mov         ebx, dword [ebp + 0Ch]   ;ebx <- matrixA
+mov         ecx, dword [ebp + 10h]   ;ecx <- matrixB
 
 insertps    xmm1, [ecx + 00h], 0x0E			;0b--ppzzzz load first column of B into xmm1
 insertps    xmm1, [ecx + 10h], 0x10           
@@ -117,9 +117,9 @@ multiplyMatVec4:
 push        ebp
 mov         ebp, esp
 
-mov         eax, dword [esp + 08h]   ;eax <- destination
-mov         ebx, dword [esp + 0Ch]   ;ebx <- matrixA
-mov         ecx, dword [esp + 10h]   ;ecx <- vector
+mov         eax, dword [ebp + 08h]   ;eax <- destination
+mov         ebx, dword [ebp + 0Ch]   ;ebx <- matrixA
+mov         ecx, dword [ebp + 10h]   ;ecx <- vector
 
 movups      xmm1, [ecx]
 
@@ -147,6 +147,104 @@ updateRotation:
 push        ebp
 mov         ebp, esp
 
+mov         eax, dword [ebp + 08h] ;matrix addr
+mov         ebx, dword [ebp + 0Ch] ;rotation addr
+
+sub         esp, 18h ;6*4 for sin cos
+
+fld         dword [ebx + 00h]
+fsincos
+fstp        dword [ebp - 04h] ; cos(x)
+fstp        dword [ebp - 08h] ; sin(x)
+
+fld         dword [ebx + 04h]
+fsincos
+fstp        dword [ebp - 0Ch] ; cos(y)
+fstp        dword [ebp - 10h] ; sin(y)
+
+fld         dword [ebx + 08h]
+fsincos
+fstp        dword [ebp - 14h] ; cos(z)
+fstp        dword [ebp - 18h] ; sin(z)
+
+;#############################################################################################
+;# cos(y)cos(z)   sin(x)sin(y)cos(z) - cos(x)sin(z)   cos(x)sin(y)cos(z) + sin(x)sin(z)  0   #
+;# cos(y)sin(z)   sin(x)sin(y)sin(z) + cos(x)cos(z)   cos(x)sin(y)sin(z) - sin(x)cos(z)  0   #
+;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)            0   #
+;#      0                       0                                     0                  1   #
+;#############################################################################################
+
+fld         dword [ebp - 0Ch] ;cos(y)
+fmul        dword [ebp - 14h] ;*cos(z)
+fstp        dword [eax + 00h]
+
+fld         dword [ebp - 08h] ; sin(x)
+fmul        dword [ebp - 10h] ;*sin(y)
+fmul        dword [ebp - 14h] ;*cos(z)
+fld         dword [ebp - 04h] ; cos(x)
+fmul        dword [ebp - 18h] ;*sin(z)
+fsubp
+fstp        dword [eax + 04h]
+
+fld         dword [ebp - 04h] ; cos(x)
+fmul        dword [ebp - 10h] ;*sin(y)
+fmul        dword [ebp - 14h] ;*cos(z)
+fld         dword [ebp - 08h] ; sin(x)
+fmul        dword [ebp - 18h] ;*sin(z)
+faddp
+fstp        dword [eax + 08h]
+
+mov         dword [eax + 0Ch], 0 ; 0
+
+;# cos(y)sin(z)   sin(x)sin(y)sin(z) + cos(x)cos(z)   cos(x)sin(y)sin(z) - sin(x)cos(z)  0   #
+
+fld         dword [ebp - 0Ch] ;cos(y)
+fmul        dword [ebp - 18h] ;*sin(z)
+fstp        dword [eax + 10h]
+
+fld         dword [ebp - 08h] ; sin(x)
+fmul        dword [ebp - 10h] ;*sin(y)
+fmul        dword [ebp - 18h] ;*sin(z)
+fld         dword [ebp - 04h] ; cos(x)
+fmul        dword [ebp - 14h] ;*cos(z)
+faddp
+fstp        dword [eax + 14h]
+
+fld         dword [ebp - 04h] ; cos(x)
+fmul        dword [ebp - 10h] ;*sin(y)
+fmul        dword [ebp - 18h] ;*sin(z)
+fld         dword [ebp - 08h] ; sin(x)
+fmul        dword [ebp - 14h] ;*cos(z)
+fsubp
+fstp        dword [eax + 18h]
+
+mov         dword [eax + 1Ch], 0 ; 0
+
+;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)            0   #    
+fld         dword [ebp - 10h] ;sin(y)
+fchs
+fstp        dword [eax + 20h]
+
+fld         dword [ebp - 08h] ; sin(x)
+fmul        dword [ebp - 0Ch] ;*cos(y)
+fstp        dword [eax + 24h]
+
+fld         dword [ebp - 04h] ; cos(x)
+fmul        dword [ebp - 0Ch] ;*cos(z)
+fstp        dword [eax + 28h]
+
+mov         dword [eax + 2Ch], 0 ; 0
+
+;#      0                       0                                     0                  1   #
+
+mov         dword [eax + 30h], 0 ; 0
+mov         dword [eax + 34h], 0 ; 0
+mov         dword [eax + 38h], 0 ; 0
+fld1
+fstp         dword [eax + 3Ch]   ; 1
+
+
+
 mov         esp, ebp
 pop         ebp
 ret
@@ -154,6 +252,16 @@ ret
 updatePosition:
 push        ebp
 mov         ebp, esp
+
+mov         eax, dword [esp + 08h] ;matrix addr
+mov         ebx, dword [esp + 0Ch] ;position addr
+
+mov         ecx, dword [ebx + 00h]
+mov         dword [eax + 0Ch], ecx
+mov         ecx, dword [ebx + 04h]
+mov         dword [eax + 1Ch], ecx
+mov         ecx, dword [ebx + 08h]
+mov         dword [eax + 2Ch], ecx
 
 mov         esp, ebp
 pop         ebp
@@ -177,9 +285,9 @@ fld         dword [eax + 04h]      ;load y to st(0)
 fdiv        dword [eax + 0Ch]
 fstp        dword [eax + 04h]
 
-fld         dword [eax + 04h]      ;load z to st(0)
+fld         dword [eax + 08h]      ;load z to st(0)
 fdiv        dword [eax + 0Ch]
-fstp        dword [eax + 04h]
+fstp        dword [eax + 08h]
 
 fld         dword [eax + 0Ch]      ;load w to st(0)
 fdiv        dword [eax + 0Ch]

@@ -2,6 +2,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Shape.hpp>
+#include <SFML/Graphics/Text.hpp>
 
 #define LOG(MSG) std::cout << #MSG << '\n';
 
@@ -18,7 +19,7 @@ float translationMatrix[16] = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 5,
-        0, 0, 0, 1,
+        0, 0, 0, 1
 };
 
 float projectionMatrix[16] = {
@@ -76,16 +77,16 @@ sf::Color edgesColor[12] = {
 const float width = 512;
 const float height = 512;
 
-float rotation[3] = {0};
-float position[3] = {0};
-const float rotationSpeed = 0.1;
-const float movementSpeed = 0.1;
+float rotation[3] = {0, 0, 0};
+float position[3] = {0, 0, 5};
+const float rotationSpeed = 0.01;
+const float movementSpeed = 0.01;
 
 extern "C" {
 void multiplyMat4(float* result, float* A, float* B);
 void multiplyMatVec4(float* result, float* A, float* V);
-void updateRotation();
-void updatePosition();
+void updateRotation(float* matrix, float* rotation);
+void updatePosition(float* matrix, float* position);
 void normalizeVert(float* V, float width, float height);
 }
 
@@ -97,16 +98,14 @@ void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
     rotation[1] += y * rotationSpeed;
     rotation[2] += z * rotationSpeed;
-    updateRotation();
-    std::cout << rotation[0] << " " << rotation[1] << " " << rotation[2] << '\n';
+    updateRotation(rotationMatrix, rotation);
 }
 
 void move(float x, float y, float z) {
     position[0] += x * movementSpeed;
     position[1] += y * movementSpeed;
     position[2] += z * movementSpeed;
-    updatePosition();
-    std::cout << position[0] << " " << position[1] << " " << position[2] << '\n';
+    updatePosition(translationMatrix, position);
 }
 
 void printMatrix(float* pMatrix) {
@@ -119,8 +118,15 @@ void printMatrix(float* pMatrix) {
     std::cout << "\n";
 }
 
+void printVec(float* pVec) {
+    for (int j = 0; j < 4; j++) {
+        std::cout << pVec[j] << "\t";
+    }
+    std::cout << "\n";
+}
+
 void render() {
-    multiplyMat4(MVPMatrix, rotationMatrix, translationMatrix);
+    multiplyMat4(MVPMatrix, translationMatrix, rotationMatrix);
     multiplyMat4(MVPMatrix, projectionMatrix, MVPMatrix);
     for (int i = 0; i < 8; i++) {
         multiplyMatVec4(vertsResult[i], MVPMatrix, verts[i]);
@@ -131,7 +137,21 @@ void render() {
 int main() {
 
     sf::Image image;
+    sf::Text rotationLabel;
+    sf::Text positionLabel;
+    sf::Font font;
     sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
+
+    if (!font.loadFromFile("fira.ttf"))
+        throw std::runtime_error("Ups, no font...");
+    rotationLabel.setCharacterSize(14);
+    positionLabel.setCharacterSize(14);
+    rotationLabel.setFont(font);
+    positionLabel.setFont(font);
+    rotationLabel.setColor(sf::Color::White);
+    positionLabel.setColor(sf::Color::White);
+    rotationLabel.setPosition(0, 470);
+    positionLabel.setPosition(0, 490);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -166,27 +186,27 @@ int main() {
         }
 
         /* position */
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num8)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
             move(0, 1, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
             move(0, -1, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
             move(-1, 0, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num6)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
             move(1, 0, 0);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num7)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
             move(0, 0, 1);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
             move(0, 0, -1);
         }
 
@@ -200,6 +220,14 @@ int main() {
             };
             window.draw(line, 2, sf::Lines);
         }
+        positionLabel.setString(
+                "Position: x " + std::to_string(position[0]) + "\ty " + std::to_string(position[1]) + "\tz " +
+                std::to_string(position[2]));
+        window.draw(positionLabel);
+        rotationLabel.setString(
+                "Rotation: x " + std::to_string(rotation[0]) + "\ty " + std::to_string(rotation[1]) + "\tz " +
+                std::to_string(rotation[2]));
+        window.draw(rotationLabel);
         //image.create(512, 512, pixels);
         window.display();
     }
