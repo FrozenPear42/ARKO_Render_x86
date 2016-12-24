@@ -180,7 +180,7 @@ fstp        dword [ebp - 18h] ; sin(z)
 ;#############################################################################################
 ;# cos(y)cos(z)   sin(x)sin(y)cos(z) - cos(x)sin(z)   cos(x)sin(y)cos(z) + sin(x)sin(z)  0   #
 ;# cos(y)sin(z)   sin(x)sin(y)sin(z) + cos(x)cos(z)   cos(x)sin(y)sin(z) - sin(x)cos(z)  0   #
-;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)            0    #
+;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)             0   #
 ;#      0                       0                                     0                  1   #
 ;#############################################################################################
 
@@ -245,7 +245,7 @@ fstp        dword [eax + 28h]
 
 mov         dword [eax + 2Ch], 0 ; 0
 
-;#      0                       0                                     0                  1   #
+; 0 0 0 1
 
 mov         dword [eax + 30h], 0 ; 0
 mov         dword [eax + 34h], 0 ; 0
@@ -266,12 +266,30 @@ mov         ebp, esp
 mov         eax, dword [esp + 08h] ;matrix addr
 mov         ebx, dword [esp + 0Ch] ;position addr
 
+fld1
+
+fst         dword[eax + 00h]
+mov         dword[eax + 04h], 0
+mov         dword[eax + 08h], 0
 mov         ecx, dword [ebx + 00h]
 mov         dword [eax + 0Ch], ecx
+
+mov         dword[eax + 10h], 0
+fst         dword[eax + 14h]
+mov         dword[eax + 18h], 0
 mov         ecx, dword [ebx + 04h]
 mov         dword [eax + 1Ch], ecx
+
+mov         dword[eax + 20h], 0
+mov         dword[eax + 24h], 0
+fst         dword[eax + 28h]
 mov         ecx, dword [ebx + 08h]
 mov         dword [eax + 2Ch], ecx
+
+mov         dword[eax + 30h], 0
+mov         dword[eax + 34h], 0
+mov         dword[eax + 38h], 0
+fstp        dword[eax + 3Ch]
 
 mov         esp, ebp
 pop         ebp
@@ -281,7 +299,7 @@ normalizeVert:
 push        ebp
 mov         ebp, esp
 ;W-NORMALIZE
-mov         eax, dword [esp + 08h]  ;vector addr to eax
+mov         eax, dword [ebp + 08h]  ;vector addr to eax
 
 fld         dword [eax + 0Ch]
 fabs

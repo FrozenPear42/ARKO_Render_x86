@@ -1,40 +1,31 @@
 #include <iostream>
 #include <sstream>
+#include <iomanip>
+#include <cmath>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/Text.hpp>
-#include <iomanip>
 
-const float width = 512;
-const float height = 512;
-const float fov = 90;
+const float width = 800;
+const float height = 800;
+const float fov = 90 * (float) (M_PI / 180.0);
 const float near = 0.1;
 const float far = 500;
+const float rotationSpeed = 0.05;
+const float movementSpeed = 0.005;
 
 uint8_t pixels[(int) width * (int) height * 4] = {0};
 
-float rotationMatrix[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-};
-
-float translationMatrix[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 5,
-        0, 0, 0, 1
-};
-
 float projectionMatrix[16] = {
-        1.000000, 0.000000, 0.000000, 0.0000000,
-        0.000000, 1.000000, 0.000000, 0.0000000,
-        0.000000, 0.000000, 1.000400, -0.200040,
-        0.000000, 0.000000, 1.000000, 0.0000000,
+        1 / (std::tan(fov / 2) * (width / height)), 0, 0, 0,
+        0, 1 / std::tan(fov / 2), 0, 0,
+        0, 0, (far + near) / (far - near), -2 * far * near / (far - near),
+        0, 0, 1, 0
 };
 
+float rotationMatrix[16] = {0};
+float translationMatrix[16] = {0};
 float MVPMatrix[16] = {0};
 
 float verts[8][4] = {
@@ -47,8 +38,6 @@ float verts[8][4] = {
         {1,  1,  1,  1},
         {1,  -1, 1,  1},
 };
-
-float vertsResult[8][4] = {0};
 
 uint8_t edges[12][2] = {
         {0, 1},
@@ -80,11 +69,9 @@ sf::Color edgesColor[12] = {
         sf::Color(0xFF, 0xCC, 0x00),
 };
 
-
+float vertsResult[8][4] = {0};
 float rotation[3] = {0, 0, 0};
 float position[3] = {0, 0, 5};
-const float rotationSpeed = 0.05;
-const float movementSpeed = 0.005;
 
 extern "C" {
 void multiplyMat4(float* result, float* A, float* B);
@@ -164,6 +151,7 @@ int main() {
     sf::Text rotationLabel;
     sf::Text positionLabel;
     sf::Text verticesLabel;
+    sf::Text rotationMatrixLabel;
     sf::Text MVPMatrixLabel;
     sf::Font font;
     sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
@@ -176,10 +164,15 @@ int main() {
     verticesLabel.setColor(sf::Color::White);
     verticesLabel.setPosition(0, 0);
 
+    rotationMatrixLabel.setCharacterSize(14);
+    rotationMatrixLabel.setFont(font);
+    rotationMatrixLabel.setColor(sf::Color::White);
+    rotationMatrixLabel.setPosition(0, 160);
+
     MVPMatrixLabel.setCharacterSize(14);
     MVPMatrixLabel.setFont(font);
     MVPMatrixLabel.setColor(sf::Color::White);
-    MVPMatrixLabel.setPosition(0, 160);
+    MVPMatrixLabel.setPosition(0, 250);
 
     rotationLabel.setCharacterSize(14);
     rotationLabel.setFont(font);
@@ -190,6 +183,9 @@ int main() {
     positionLabel.setFont(font);
     positionLabel.setColor(sf::Color::White);
     positionLabel.setPosition(0, height - 20);
+
+    setRotation(0, 0, 0);
+    setPosition(0, 0, 5);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -258,9 +254,13 @@ int main() {
 
         render();
         for (int i = 0; i < 12; i++) {
+            float* v1 = vertsResult[edges[i][0]];
+            float* v2 = vertsResult[edges[i][1]];
+            if (v1[2] < 0 && v2[2] < 0)
+                continue;
             sf::Vertex line[] = {
-                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][0]][0], vertsResult[edges[i][0]][1]), edgesColor[i]),
-                    sf::Vertex(sf::Vector2f(vertsResult[edges[i][1]][0], vertsResult[edges[i][1]][1]), edgesColor[i]),
+                    sf::Vertex(sf::Vector2f(v1[0], v1[1]), edgesColor[i]),
+                    sf::Vertex(sf::Vector2f(v2[0], v2[1]), edgesColor[i]),
             };
             window.draw(line, 2, sf::Lines);
         }
@@ -279,6 +279,7 @@ int main() {
         window.draw(rotationLabel);
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tab)) {
+
             s.str("");
             s << "Vertices:\n";
             for (int i = 0; i < 8; ++i)
@@ -286,6 +287,19 @@ int main() {
                   << " z: " << std::setw(10) << vertsResult[i][2] << "\n";
             verticesLabel.setString(s.str());
             window.draw(verticesLabel);
+
+            s.str("");
+            s << "Rotation Matrix:\n";
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    s << std::setw(8) << rotationMatrix[4 * i + j] << "\t";
+                }
+                s << "\n";
+            }
+            s << "\n";
+            rotationMatrixLabel.setString(s.str());
+            window.draw(rotationMatrixLabel);
+
             s.str("");
             s << "MVP Matrix:\n";
             for (int i = 0; i < 4; i++) {
