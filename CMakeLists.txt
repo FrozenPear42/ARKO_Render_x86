@@ -19,8 +19,7 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules")
 set(SFML_ROOT ./SFML)
-#find_package(SFML 2 REQUIRED system window graphics network audio)
-include_directories(${SFML_INCLUDE_DIR})
+include_directories(${SFML_ROOT}/include)
 target_link_libraries(${EXECUTABLE_NAME}
                             ${CMAKE_SOURCE_DIR}/SFML/lib/libsfml-system.so
                             ${CMAKE_SOURCE_DIR}/SFML/lib/libsfml-window.so

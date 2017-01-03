@@ -6,6 +6,7 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include <chrono>
 
 const float width = 800;
 const float height = 800;
@@ -121,18 +122,16 @@ void setPosition(float x, float y, float z) {
 
 void printMatrix(float* pMatrix) {
     for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+        for (int j = 0; j < 4; j++)
             std::cout << pMatrix[4 * i + j] << "\t";
-        }
         std::cout << "\n";
     }
     std::cout << "\n";
 }
 
 void printVec(float* pVec) {
-    for (int j = 0; j < 4; j++) {
+    for (int j = 0; j < 4; j++)
         std::cout << pVec[j] << "\t";
-    }
     std::cout << "\n";
 }
 
@@ -153,8 +152,11 @@ int main() {
     sf::Text verticesLabel;
     sf::Text rotationMatrixLabel;
     sf::Text MVPMatrixLabel;
+    sf::Text FPSLabel;
     sf::Font font;
+    std::chrono::time_point<std::chrono::system_clock> last;
     sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
+//    window.setFramerateLimit(2000);
 
     if (!font.loadFromFile("fira.ttf"))
         throw std::runtime_error("Ups, no font...");
@@ -184,15 +186,30 @@ int main() {
     positionLabel.setColor(sf::Color::White);
     positionLabel.setPosition(0, height - 20);
 
+    FPSLabel.setCharacterSize(14);
+    FPSLabel.setFont(font);
+    FPSLabel.setColor(sf::Color::White);
+    FPSLabel.setPosition(width - 120, height - 20);
+
+
+    last = std::chrono::system_clock::now();
+
     setRotation(0, 0, 0);
     setPosition(0, 0, 5);
 
     while (window.isOpen()) {
         sf::Event event;
+        float FPS;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
+            if (event.type == sf::Event::Closed) {
                 window.close();
+            }
         }
+
+        auto now = std::chrono::system_clock::now();
+        std::chrono::duration<float> delta = (now-last);
+        FPS = 1.0f / delta.count();
+        last = now;
 
         /* rotation */
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
@@ -271,12 +288,17 @@ int main() {
         s << "Position: x:" << std::setw(10) << position[0] << "  y:" << std::setw(10) << position[1] << "  z:"
           << std::setw(10) << position[2];
         positionLabel.setString(s.str());
+        window.draw(positionLabel);
         s.str("");
         s << "Rotation: x:" << std::setw(10) << rotation[0] << "  y:" << std::setw(10) << rotation[1] << "  z:"
           << std::setw(10) << rotation[2];
         rotationLabel.setString(s.str());
-        window.draw(positionLabel);
         window.draw(rotationLabel);
+
+        s.str("");
+        s << "FPS: " << FPS;
+        FPSLabel.setString(s.str());
+        window.draw(FPSLabel);
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tab)) {
 
@@ -291,9 +313,8 @@ int main() {
             s.str("");
             s << "Rotation Matrix:\n";
             for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
+                for (int j = 0; j < 4; j++)
                     s << std::setw(8) << rotationMatrix[4 * i + j] << "\t";
-                }
                 s << "\n";
             }
             s << "\n";
@@ -303,9 +324,8 @@ int main() {
             s.str("");
             s << "MVP Matrix:\n";
             for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
+                for (int j = 0; j < 4; j++)
                     s << std::setw(8) << MVPMatrix[4 * i + j] << "\t";
-                }
                 s << "\n";
             }
             s << "\n";
