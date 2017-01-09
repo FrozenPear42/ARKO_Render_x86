@@ -13,10 +13,8 @@ const float height = 800;
 const float fov = 90 * (float) (M_PI / 180.0);
 const float near = 0.1;
 const float far = 500;
-const float rotationSpeed = 0.05;
-const float movementSpeed = 0.005;
-
-uint8_t pixels[(int) width * (int) height * 4] = {0};
+const float rotationSpeed = 0.5;
+const float movementSpeed = 0.5;
 
 float projectionMatrix[16] = {
         1 / (std::tan(fov / 2) * (width / height)), 0, 0, 0,
@@ -75,11 +73,11 @@ float rotation[3] = {0, 0, 0};
 float position[3] = {0, 0, 5};
 
 extern "C" {
-void multiplyMat4(float* result, float* A, float* B);
-void multiplyMatVec4(float* result, float* A, float* V);
-void updateRotation(float* matrix, float* rotation);
-void updatePosition(float* matrix, float* position);
-void normalizeVert(float* V, float width, float height);
+int render(float* outputVerts, float* verts, int nVecs,
+            float* rotation, float* position, int rotationFlag,
+            float fov, float width, float height,
+            float* rotationMatrix, float* translationMatrix, float* projectionMatrix, float* MVPMatrix
+            );
 }
 
 void rotate(float x, float y, float z);
@@ -95,58 +93,28 @@ void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
     rotation[1] += y * rotationSpeed;
     rotation[2] += z * rotationSpeed;
-    updateRotation(rotationMatrix, rotation);
 }
 
 void move(float x, float y, float z) {
     position[0] += x * movementSpeed;
     position[1] += y * movementSpeed;
     position[2] += z * movementSpeed;
-    updatePosition(translationMatrix, position);
 }
 
 void setRotation(float x, float y, float z) {
     rotation[0] = x;
     rotation[1] = y;
     rotation[2] = z;
-    updateRotation(rotationMatrix, rotation);
 }
 
 void setPosition(float x, float y, float z) {
     position[0] = x;
     position[1] = y;
     position[2] = z;
-    updatePosition(translationMatrix, position);
-}
-
-
-void printMatrix(float* pMatrix) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++)
-            std::cout << pMatrix[4 * i + j] << "\t";
-        std::cout << "\n";
-    }
-    std::cout << "\n";
-}
-
-void printVec(float* pVec) {
-    for (int j = 0; j < 4; j++)
-        std::cout << pVec[j] << "\t";
-    std::cout << "\n";
-}
-
-void render() {
-    multiplyMat4(MVPMatrix, translationMatrix, rotationMatrix);
-    multiplyMat4(MVPMatrix, projectionMatrix, MVPMatrix);
-    for (int i = 0; i < 8; i++) {
-        multiplyMatVec4(vertsResult[i], MVPMatrix, verts[i]);
-        normalizeVert(vertsResult[i], width, height);
-    }
 }
 
 int main() {
 
-    sf::Image image;
     sf::Text rotationLabel;
     sf::Text positionLabel;
     sf::Text verticesLabel;
@@ -156,7 +124,7 @@ int main() {
     sf::Font font;
     std::chrono::time_point<std::chrono::system_clock> last;
     sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
-//    window.setFramerateLimit(2000);
+    window.setFramerateLimit(60);
 
     if (!font.loadFromFile("fira.ttf"))
         throw std::runtime_error("Ups, no font...");
@@ -207,7 +175,7 @@ int main() {
         }
 
         auto now = std::chrono::system_clock::now();
-        std::chrono::duration<float> delta = (now-last);
+        std::chrono::duration<float> delta = (now - last);
         FPS = 1.0f / delta.count();
         last = now;
 
@@ -269,7 +237,8 @@ int main() {
 
         window.clear(sf::Color(0x11, 0x22, 0x44));
 
-        render();
+        render((float*) vertsResult, (float*) verts, 8, rotation, position, 0, 90, width, height, rotationMatrix, translationMatrix, projectionMatrix, MVPMatrix);
+
         for (int i = 0; i < 12; i++) {
             float* v1 = vertsResult[edges[i][0]];
             float* v2 = vertsResult[edges[i][1]];

@@ -1,10 +1,9 @@
-
+global render
 global  multiplyMat4
 global  multiplyMatVec4
 global  updateRotation
 global  updatePosition
 global  normalizeVert
-
 section .data
 const_fp_half   dd  0.5
 const_fp_180    dd  180.0
@@ -21,7 +20,7 @@ mov         ecx, dword [ebp + 10h]   ;ecx <- matrixB
 insertps    xmm1, [ecx + 00h], 0x0E			;0b--ppzzzz load first column of B into xmm1
 insertps    xmm1, [ecx + 10h], 0x10           
 insertps    xmm1, [ecx + 20h], 0x20           
-insertps    xmm1, [ecx + 30h], 0x30           
+insertps    xmm1, [ecx + 30h], 0x30
 
 insertps    xmm2, [ecx + 04h], 0x0E			;0b--ppzzzz load second column of B into xmm1
 insertps    xmm2, [ecx + 14h], 0x10           
@@ -119,24 +118,24 @@ push        ebp
 mov         ebp, esp
 
 mov         eax, dword [ebp + 08h]   ;eax <- destination
-mov         ebx, dword [ebp + 0Ch]   ;ebx <- matrixA
+mov         edx, dword [ebp + 0Ch]   ;ebx <- matrixA
 mov         ecx, dword [ebp + 10h]   ;ecx <- vector
 
 movups      xmm1, [ecx]
 
-movups      xmm0, [ebx]
+movups      xmm0, [edx]
 dpps        xmm0, xmm1, 0xFF
 extractps   [eax], xmm0, 0x01
 
-movups      xmm0, [ebx + 10h]
+movups      xmm0, [edx + 10h]
 dpps        xmm0, xmm1, 0xFF
 extractps   [eax + 04h], xmm0, 0x01
 
-movups      xmm0, [ebx + 20h]
+movups      xmm0, [edx + 20h]
 dpps        xmm0, xmm1, 0xFF
 extractps   [eax + 08h], xmm0, 0x01
 
-movups      xmm0, [ebx + 30h]
+movups      xmm0, [edx + 30h]
 dpps        xmm0, xmm1, 0xFF
 extractps   [eax + 0Ch], xmm0, 0x01
 
@@ -268,28 +267,28 @@ mov         ebx, dword [esp + 0Ch] ;position addr
 
 fld1
 
-fst         dword[eax + 00h]
-mov         dword[eax + 04h], 0
-mov         dword[eax + 08h], 0
+fst         dword [eax + 00h]
+mov         dword [eax + 04h], 0
+mov         dword [eax + 08h], 0
 mov         ecx, dword [ebx + 00h]
 mov         dword [eax + 0Ch], ecx
 
-mov         dword[eax + 10h], 0
-fst         dword[eax + 14h]
-mov         dword[eax + 18h], 0
+mov         dword [eax + 10h], 0
+fst         dword [eax + 14h]
+mov         dword [eax + 18h], 0
 mov         ecx, dword [ebx + 04h]
 mov         dword [eax + 1Ch], ecx
 
-mov         dword[eax + 20h], 0
-mov         dword[eax + 24h], 0
-fst         dword[eax + 28h]
+mov         dword [eax + 20h], 0
+mov         dword [eax + 24h], 0
+fst         dword [eax + 28h]
 mov         ecx, dword [ebx + 08h]
 mov         dword [eax + 2Ch], ecx
 
-mov         dword[eax + 30h], 0
-mov         dword[eax + 34h], 0
-mov         dword[eax + 38h], 0
-fstp        dword[eax + 3Ch]
+mov         dword [eax + 30h], 0
+mov         dword [eax + 34h], 0
+mov         dword [eax + 38h], 0
+fstp        dword [eax + 3Ch]
 
 mov         esp, ebp
 pop         ebp
@@ -300,7 +299,6 @@ push        ebp
 mov         ebp, esp
 ;W-NORMALIZE
 mov         eax, dword [ebp + 08h]  ;vector addr to eax
-
 fld         dword [eax + 0Ch]
 fabs
 fstp        dword [eax + 0Ch]
@@ -323,13 +321,13 @@ fstp        dword [eax + 0Ch]
 ; CLIP TO VIEWPORT
 fld1        
 fadd        dword [eax + 00h]      ;1 + x
-fmul        dword [esp + 0Ch]      ;* width
+fmul        dword [ebp + 0Ch]      ;* width
 fmul        dword [const_fp_half]
 fstp        dword [eax + 00h]
 
 fld1        
 fadd        dword [eax + 04h]      ;1 + y
-fmul        dword [esp + 10h]      ;* height
+fmul        dword [ebp + 10h]      ;* height
 fmul        dword [const_fp_half]
 fstp        dword [eax + 04h]
 
@@ -343,3 +341,69 @@ pop         ebp
 ret
 
 render:
+push        ebp
+mov         ebp, esp
+
+; int render(float* outputVerts, float* verts, int nVecs,                                                   ;08h, 0Ch, 10h
+;             float* rotation, float* position, int rotationFlag,                                           ;14h, 18h, 1Ch
+;             float fov, float width. float height,                                                         ;20h, 24h, 28h
+;             float* rotationMatrix, float* translationMatrix, float* projectionMatrix, float* MVPMatrix    ;2Ch, 30h, 34h, 38h
+;             );
+
+;create rotation and translation matrices
+push        dword [ebp + 14h] ; push rotation
+push        dword [ebp + 2Ch] ; push rotationMatrix
+call        updateRotation
+add         esp, 8
+
+push        dword [ebp + 18h] ; push translation
+push        dword [ebp + 30h] ; push translationMatrix
+call        updatePosition
+add         esp, 8
+push        dword [ebp + 2Ch] ;rotationMatrix
+push        dword [ebp + 30h] ;translationMatrix
+push        dword [ebp + 38h] ;MVPMatrix
+call        multiplyMat4
+add         esp, 0Ch
+
+push        dword [ebp + 38h] ;MVPMatrix 
+push        dword [ebp + 34h] ;projectionMatrix
+push        dword [ebp + 38h] ;MVPMatrix
+call        multiplyMat4
+add         esp, 0Ch
+
+mov         ecx, dword [ebp + 10h] ; nVerts
+sub         ecx, 1
+computeVerts:
+push        ecx
+
+mov         eax, dword [ebp + 0Ch] ; source verts
+mov         ebx, ecx
+lsl         ebx, 4
+add         eax, ebx
+
+push        eax
+push        dword [ebp + 38h] ; MVP
+mov         eax,  dword [ebp + 08h]  ; res verts
+add         eax, ebx
+push        eax
+
+call        multiplyMatVec4
+add         esp, 0Ch
+
+push        dword [ebp + 28h]
+push        dword [ebp + 24h]
+mov         eax, dword [ebp + 08h] ; res verts
+add         eax, ebx
+push        eax
+call        normalizeVert
+add         esp, 0Ch
+
+pop         ecx
+dec         ecx
+cmp         ecx, 0
+jge        computeVerts
+
+mov         esp, ebp
+pop         ebp
+ret
