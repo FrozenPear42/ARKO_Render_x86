@@ -8,21 +8,14 @@
 #include <SFML/Graphics/Text.hpp>
 #include <chrono>
 
-const float width = 800;
-const float height = 800;
-const float fov = 90 * (float) (M_PI / 180.0);
-const float near = 0.1;
-const float far = 500;
-const float rotationSpeed = 0.5;
-const float movementSpeed = 0.5;
+float width = 800;
+float height = 800;
+float fov = 90;
 
-float projectionMatrix[16] = {
-        1 / (std::tan(fov / 2) * (width / height)), 0, 0, 0,
-        0, 1 / std::tan(fov / 2), 0, 0,
-        0, 0, (far + near) / (far - near), -2 * far * near / (far - near),
-        0, 0, 1, 0
-};
+const float rotationSpeed = 1.0;
+const float movementSpeed = 0.2;
 
+float projectionMatrix[16] = {0};
 float rotationMatrix[16] = {0};
 float translationMatrix[16] = {0};
 float MVPMatrix[16] = {0};
@@ -35,8 +28,7 @@ float verts[8][4] = {
         {-1, -1, 1,  1},
         {-1, 1,  1,  1},
         {1,  1,  1,  1},
-        {1,  -1, 1,  1},
-};
+        {1,  -1, 1,  1},};
 
 uint8_t edges[12][2] = {
         {0, 1},
@@ -50,8 +42,7 @@ uint8_t edges[12][2] = {
         {0, 4},
         {1, 5},
         {2, 6},
-        {3, 7},
-};
+        {3, 7},};
 
 sf::Color edgesColor[12] = {
         sf::Color(0xFF, 0x55, 0xCC),
@@ -65,8 +56,7 @@ sf::Color edgesColor[12] = {
         sf::Color(0xFF, 0xCC, 0x00),
         sf::Color(0xFF, 0xCC, 0x00),
         sf::Color(0xFF, 0xCC, 0x00),
-        sf::Color(0xFF, 0xCC, 0x00),
-};
+        sf::Color(0xFF, 0xCC, 0x00),};
 
 float vertsResult[8][4] = {0};
 float rotation[3] = {0, 0, 0};
@@ -74,10 +64,10 @@ float position[3] = {0, 0, 5};
 
 extern "C" {
 int render(float* outputVerts, float* verts, int nVecs,
-            float* rotation, float* position, int rotationFlag,
-            float fov, float width, float height,
-            float* rotationMatrix, float* translationMatrix, float* projectionMatrix, float* MVPMatrix
-            );
+           float* rotation, float* position, int rotationFlag,
+           float fov, float width, float height,
+           float* rotationMatrix, float* translationMatrix, float* projectionMatrix, float* MVPMatrix
+);
 }
 
 void rotate(float x, float y, float z);
@@ -87,7 +77,6 @@ void move(float x, float y, float z);
 void setRotation(float x, float y, float z);
 
 void setPosition(float x, float y, float z);
-
 
 void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
@@ -114,7 +103,7 @@ void setPosition(float x, float y, float z) {
 }
 
 int main() {
-
+    sf::Text fovLabel;
     sf::Text rotationLabel;
     sf::Text positionLabel;
     sf::Text verticesLabel;
@@ -123,6 +112,7 @@ int main() {
     sf::Text FPSLabel;
     sf::Font font;
     std::chrono::time_point<std::chrono::system_clock> last;
+
     sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
     window.setFramerateLimit(60);
 
@@ -133,6 +123,11 @@ int main() {
     verticesLabel.setFont(font);
     verticesLabel.setColor(sf::Color::White);
     verticesLabel.setPosition(0, 0);
+
+    fovLabel.setCharacterSize(14);
+    fovLabel.setFont(font);
+    fovLabel.setColor(sf::Color::White);
+    fovLabel.setPosition(0, height - 60);
 
     rotationMatrixLabel.setCharacterSize(14);
     rotationMatrixLabel.setFont(font);
@@ -158,7 +153,6 @@ int main() {
     FPSLabel.setFont(font);
     FPSLabel.setColor(sf::Color::White);
     FPSLabel.setPosition(width - 120, height - 20);
-
 
     last = std::chrono::system_clock::now();
 
@@ -229,21 +223,30 @@ int main() {
             move(0, 0, -1);
         }
 
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
+            fov -= 0.5;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+            fov += 0.5;
+        }
+
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
             setPosition(0, 0, 5);
             setRotation(0, 0, 0);
+            fov = 90;
         }
-
 
         window.clear(sf::Color(0x11, 0x22, 0x44));
 
-        render((float*) vertsResult, (float*) verts, 8, rotation, position, 0, 90, width, height, rotationMatrix, translationMatrix, projectionMatrix, MVPMatrix);
+        render((float*) vertsResult, (float*) verts, 8, rotation, position, 0, fov, width, height,
+               rotationMatrix, translationMatrix, projectionMatrix, MVPMatrix);
 
         for (int i = 0; i < 12; i++) {
             float* v1 = vertsResult[edges[i][0]];
             float* v2 = vertsResult[edges[i][1]];
-            if (v1[2] < 0 && v2[2] < 0)
-                continue;
+            if (v1[2] < 0 || v2[2] < 0)
+                if (v1[2] < 0 && v2[2] < 0)
+                    continue;
             sf::Vertex line[] = {
                     sf::Vertex(sf::Vector2f(v1[0], v1[1]), edgesColor[i]),
                     sf::Vertex(sf::Vector2f(v2[0], v2[1]), edgesColor[i]),
@@ -258,6 +261,7 @@ int main() {
           << std::setw(10) << position[2];
         positionLabel.setString(s.str());
         window.draw(positionLabel);
+
         s.str("");
         s << "Rotation: x:" << std::setw(10) << rotation[0] << "  y:" << std::setw(10) << rotation[1] << "  z:"
           << std::setw(10) << rotation[2];
@@ -265,12 +269,17 @@ int main() {
         window.draw(rotationLabel);
 
         s.str("");
+        s << "FOV: " << std::setw(10) << fov;
+        fovLabel.setString(s.str());
+        window.draw(fovLabel);
+
+
+        s.str("");
         s << "FPS: " << FPS;
         FPSLabel.setString(s.str());
         window.draw(FPSLabel);
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tab)) {
-
             s.str("");
             s << "Vertices:\n";
             for (int i = 0; i < 8; ++i)
