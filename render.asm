@@ -1,12 +1,13 @@
 global render
 
-
 section .data
-const_fp_half   dd  0.5
-const_fp_180    dd  180.0
+const_fp_half     dd  0.5
+const_fp_180      dd  180.0
 f_far             dd  500.0
 f_near            dd  0.1
 extern MVPMatrix
+extern projectionMatrix
+extern rotationMatrix
 extern translationMatrix
 extern width
 
@@ -75,7 +76,7 @@ movups		xmm5, xmm0
 dpps        xmm5, xmm4, 0xFF
 extractps   [eax + 1Ch], xmm5, 0x01
 
-movups      xmm0, [edx + 20h]              ;load first row of A into xmm0
+movups      xmm0, [edx + 20h]              ;load third row of A into xmm0
 
 movups		xmm5, xmm0
 dpps        xmm5, xmm1, 0xFF
@@ -93,7 +94,7 @@ movups		xmm5, xmm0
 dpps        xmm5, xmm4, 0xFF
 extractps   [eax + 2Ch], xmm5, 0x01
 
-movups      xmm0, [edx + 30h]              ;load first row of A into xmm0
+movups      xmm0, [edx + 30h]              ;load forth row of A into xmm0
 
 movups		xmm5, xmm0
 dpps        xmm5, xmm1, 0xFF
@@ -172,7 +173,7 @@ fld         dword [const_fp_half]
 fmulp
 fptan
 fdivrp
-fst        dword [eax + 14h]
+fst         dword [eax + 14h]
 fmulp
 fstp        dword [eax + 00h]
 
@@ -405,40 +406,40 @@ render:
 push        ebp
 mov         ebp, esp
 
-; int render(float* outputVerts, float* verts, int nVecs,                                                   ;08h, 0Ch, 10h
-;             float* rotation, float* position, int rotationFlag,                                           ;14h, 18h, 1Ch
-;             float fov, float width. float height,                                                         ;20h, 24h, 28h
-;             float* rotationMatrix, float* translationMatrix, float* projectionMatrix, float* MVPMatrix    ;2Ch, 30h, 34h, 38h
+; int render(float* outputVerts, float* vertices, int nVecs,       ;08h, 0Ch, 10h
+;             float* rotation, float* position, int rotationFlag,  ;14h, 18h, 1Ch
+;             float fov, float width. float height,                ;20h, 24h, 28h
 ;             );
 
 ;create rotation and translation matrices
 push        dword [ebp + 14h] ; push rotation
-push        dword [ebp + 2Ch] ; push rotationMatrix
+push        dword rotationMatrix ; push rotationMatrix
 call        updateRotation
-add         esp, 8
+add         esp, 08h
 
 push        dword [ebp + 18h] ; push translation
-push        dword [ebp + 30h] ; push translationMatrix
+push        dword translationMatrix ; push translationMatrix
 call        updatePosition
-add         esp, 8
+add         esp, 08h
 
+mov         eax, dword [ebp + 38h]
 
-push        dword [ebp + 28h]
-push        dword [ebp + 24h]
-push        dword [ebp + 20h]
-push        dword [ebp + 34h]
+push        dword [ebp + 28h]       ;push height
+push        dword [ebp + 24h]       ;push width
+push        dword [ebp + 20h]       ;push fov
+push        dword projectionMatrix  ;push matrix
 call        updateProjection
 add         esp, 10h
 
-push        dword [ebp + 2Ch] ;rotationMatrix
-push        dword [ebp + 30h] ;translationMatrix
-push        dword [ebp + 38h] ;MVPMatrix
+push        dword rotationMatrix
+push        dword translationMatrix
+push        dword MVPMatrix
 call        multiplyMat4
 add         esp, 0Ch
 
-push        dword [ebp + 38h] ;MVPMatrix 
-push        dword [ebp + 34h] ;projectionMatrix
-push        dword [ebp + 38h] ;MVPMatrix
+push        dword MVPMatrix
+push        dword projectionMatrix
+push        dword MVPMatrix
 call        multiplyMat4
 add         esp, 0Ch
 
@@ -447,14 +448,14 @@ sub         ecx, 1
 computeVerts:
 push        ecx
 
-mov         eax, dword [ebp + 0Ch] ; source verts
+mov         eax, dword [ebp + 0Ch] ; source vertices
 mov         ebx, ecx
 shl         ebx, 4
 add         eax, ebx
 
 push        eax
-push        dword [ebp + 38h] ; MVP
-mov         eax,  dword [ebp + 08h]  ; res verts
+push        dword MVPMatrix ; MVP
+mov         eax,  dword [ebp + 08h]  ; res vertices
 add         eax, ebx
 push        eax
 
@@ -463,7 +464,7 @@ add         esp, 0Ch
 
 push        dword [ebp + 28h]
 push        dword [ebp + 24h]
-mov         eax, dword [ebp + 08h] ; res verts
+mov         eax, dword [ebp + 08h] ; res vertices
 add         eax, ebx
 push        eax
 call        normalizeVert

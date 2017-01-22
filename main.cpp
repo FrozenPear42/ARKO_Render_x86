@@ -7,20 +7,17 @@
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <chrono>
-
-float width = 800;
-float height = 800;
-float fov = 90;
-
-const float rotationSpeed = 1.0;
-const float movementSpeed = 0.2;
+#include <SFML/Graphics/ConvexShape.hpp>
 
 float projectionMatrix[16] = {0};
-float rotationMatrix[16] = {0};
 float translationMatrix[16] = {0};
+float rotationMatrix[16] = {0};
 float MVPMatrix[16] = {0};
 
-float verts[8][4] = {
+const uint32_t verticesCount = 8;
+const uint32_t edgesCount = 12;
+const uint32_t facesCount = 6;
+float vertices[verticesCount][4] = {
         {-1, -1, -1, 1},
         {-1, 1,  -1, 1},
         {1,  1,  -1, 1},
@@ -29,8 +26,7 @@ float verts[8][4] = {
         {-1, 1,  1,  1},
         {1,  1,  1,  1},
         {1,  -1, 1,  1},};
-
-uint8_t edges[12][2] = {
+uint8_t edges[edgesCount][2] = {
         {0, 1},
         {1, 2},
         {2, 3},
@@ -43,8 +39,7 @@ uint8_t edges[12][2] = {
         {1, 5},
         {2, 6},
         {3, 7},};
-
-sf::Color edgesColor[12] = {
+sf::Color edgesColor[edgesCount] = {
         sf::Color(0xFF, 0x55, 0xCC),
         sf::Color(0xFF, 0x55, 0xCC),
         sf::Color(0xFF, 0x55, 0xCC),
@@ -57,26 +52,38 @@ sf::Color edgesColor[12] = {
         sf::Color(0xFF, 0xCC, 0x00),
         sf::Color(0xFF, 0xCC, 0x00),
         sf::Color(0xFF, 0xCC, 0x00),};
+uint8_t faces[facesCount][4] = {
+        {1, 2, 6, 5},
+        {2, 3, 7, 6},
+        {3, 0, 4, 7},
+        {0, 1, 5, 4},
+        {0, 1, 2, 3},
+        {4, 5, 6, 7},};
+sf::Color facesColor[facesCount] = {
+        sf::Color(0xFF, 0xCC, 0x10),
+        sf::Color(0xFF, 0xCC, 0x20),
+        sf::Color(0xFF, 0xCC, 0x30),
+        sf::Color(0xFF, 0xCC, 0x40),
+        sf::Color(0xFF, 0x55, 0xCC),
+        sf::Color(0x55, 0x55, 0xCC),};
 
 float vertsResult[8][4] = {0};
 float rotation[3] = {0, 0, 0};
 float position[3] = {0, 0, 5};
 
+float width = 800;
+float height = 800;
+float fov = 90;
+
+const float rotationSpeed = 1.0;
+const float movementSpeed = 0.2;
+const sf::Color bgColor(0x11, 0x22, 0x44);
+
 extern "C" {
 int render(float* outputVerts, float* verts, int nVecs,
            float* rotation, float* position, int rotationFlag,
-           float fov, float width, float height,
-           float* rotationMatrix, float* translationMatrix, float* projectionMatrix, float* MVPMatrix
-);
+           float fov, float width, float height);
 }
-
-void rotate(float x, float y, float z);
-
-void move(float x, float y, float z);
-
-void setRotation(float x, float y, float z);
-
-void setPosition(float x, float y, float z);
 
 void rotate(float x, float y, float z) {
     rotation[0] += x * rotationSpeed;
@@ -118,7 +125,6 @@ int main() {
 
     if (!font.loadFromFile("fira.ttf"))
         throw std::runtime_error("Ups, no font...");
-
     verticesLabel.setCharacterSize(14);
     verticesLabel.setFont(font);
     verticesLabel.setColor(sf::Color::White);
@@ -153,7 +159,6 @@ int main() {
     FPSLabel.setFont(font);
     FPSLabel.setColor(sf::Color::White);
     FPSLabel.setPosition(width - 120, height - 20);
-
     last = std::chrono::system_clock::now();
 
     setRotation(0, 0, 0);
@@ -165,6 +170,15 @@ int main() {
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
+            } else if (event.type == sf::Event::Resized) {
+                width = window.getSize().x;
+                height = window.getSize().y;
+                fovLabel.setPosition(0, height - 60);
+                positionLabel.setPosition(0, height - 20);
+                FPSLabel.setPosition(width - 120, height - 20);
+                rotationLabel.setPosition(0, height - 40);
+                FPSLabel.setPosition(width - 120, height - 20);
+                window.setView(sf::View(sf::FloatRect(0, 0, width, height)));
             }
         }
 
@@ -172,7 +186,6 @@ int main() {
         std::chrono::duration<float> delta = (now - last);
         FPS = 1.0f / delta.count();
         last = now;
-
         /* rotation */
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
             rotate(-1, 0, 0);
@@ -236,24 +249,52 @@ int main() {
             fov = 90;
         }
 
-        window.clear(sf::Color(0x11, 0x22, 0x44));
+        window.clear(bgColor);
 
-        render((float*) vertsResult, (float*) verts, 8, rotation, position, 0, fov, width, height,
-               rotationMatrix, translationMatrix, projectionMatrix, MVPMatrix);
+        render((float*) vertsResult, (float*) vertices, verticesCount, rotation, position, 0, fov, width, height);
 
-        for (int i = 0; i < 12; i++) {
-            float* v1 = vertsResult[edges[i][0]];
-            float* v2 = vertsResult[edges[i][1]];
-            if (v1[2] < 0 || v2[2] < 0)
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
+            for (uint32_t i = 0; i < facesCount; ++i) {
+                float* v1 = vertsResult[faces[i][0]];
+                float* v2 = vertsResult[faces[i][1]];
+                float* v3 = vertsResult[faces[i][2]];
+                float* v4 = vertsResult[faces[i][3]];
+                sf::ConvexShape poly;
+                poly.setPointCount(4);
+                poly.setFillColor(facesColor[i]);
+                poly.setPoint(0, sf::Vector2f(v1[0], v1[1]));
+                poly.setPoint(1, sf::Vector2f(v2[0], v2[1]));
+                poly.setPoint(2, sf::Vector2f(v3[0], v3[1]));
+                poly.setPoint(3, sf::Vector2f(v4[0], v4[1]));
+                window.draw(poly);
+            }
+
+            for (int i = 0; i < edgesCount; i++) {
+                float* v1 = vertsResult[edges[i][0]];
+                float* v2 = vertsResult[edges[i][1]];
                 if (v1[2] < 0 && v2[2] < 0)
                     continue;
-            sf::Vertex line[] = {
-                    sf::Vertex(sf::Vector2f(v1[0], v1[1]), edgesColor[i]),
-                    sf::Vertex(sf::Vector2f(v2[0], v2[1]), edgesColor[i]),
-            };
-            window.draw(line, 2, sf::Lines);
-        }
+                sf::Vertex line[] = {
+                        sf::Vertex(sf::Vector2f(v1[0], v1[1]), sf::Color::White),
+                        sf::Vertex(sf::Vector2f(v2[0], v2[1]), sf::Color::White),
+                };
+                window.draw(line, 2, sf::Lines);
+            }
 
+        } else {
+            for (int i = 0; i < edgesCount; i++) {
+                float* v1 = vertsResult[edges[i][0]];
+                float* v2 = vertsResult[edges[i][1]];
+                if (v1[2] < 0 && v2[2] < 0)
+                    continue;
+                sf::Vertex line[] = {
+                        sf::Vertex(sf::Vector2f(v1[0], v1[1]), edgesColor[i]),
+                        sf::Vertex(sf::Vector2f(v2[0], v2[1]), edgesColor[i]),
+                };
+                window.draw(line, 2, sf::Lines);
+            }
+        }
         std::stringstream s;
         s.precision(4);
         s << std::fixed;
@@ -310,9 +351,7 @@ int main() {
             MVPMatrixLabel.setString(s.str());
             window.draw(MVPMatrixLabel);
         }
-
         window.display();
     }
-
     return 0;
 }
