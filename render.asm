@@ -5,6 +5,7 @@ const_fp_half     dd  0.5
 const_fp_180      dd  180.0
 f_far             dd  500.0
 f_near            dd  0.1
+
 extern MVPMatrix
 extern projectionMatrix
 extern rotationMatrix
@@ -17,7 +18,7 @@ multiplyMat4:
 push        ebp
 mov         ebp, esp
 mov         eax, dword [ebp + 08h]   ;eax <- destination
-mov         edx, dword [ebp + 0Ch]   ;ebx <- matrixA
+mov         edx, dword [ebp + 0Ch]   ;edx <- matrixA
 mov         ecx, dword [ebp + 10h]   ;ecx <- matrixB
 
 insertps    xmm1, [ecx + 00h], 0x0E			;0b--ppzzzz load first column of B into xmm1
@@ -41,78 +42,80 @@ insertps    xmm4, [ecx + 2Ch], 0x20
 insertps    xmm4, [ecx + 3Ch], 0x30           
 
 movups      xmm0, [edx + 00h]              ;load first row of A into xmm0
+xorps       xmm6, xmm6
 
 movups		xmm5, xmm0
-dpps        xmm5, xmm1, 0xFF
-extractps   [eax + 00h], xmm5, 0x01
-
+dpps        xmm5, xmm1, 0xF1
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm2, 0xFF
-extractps   [eax + 04h], xmm5, 0x01
-
+dpps        xmm5, xmm2, 0xF2
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm3, 0xFF
-extractps   [eax + 08h], xmm5, 0x01
-
+dpps        xmm5, xmm3, 0xF4
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm4, 0xFF
-extractps   [eax + 0Ch], xmm5, 0x01
+dpps        xmm5, xmm4, 0xF8
+orps        xmm6, xmm5
+
+movups      [eax], xmm6
+
 
 movups      xmm0, [edx + 10h]              ;load second row of A into xmm0
+xorps       xmm6, xmm6
 
 movups		xmm5, xmm0
-dpps        xmm5, xmm1, 0xFF
-extractps   [eax + 10h], xmm5, 0x01
-
+dpps        xmm5, xmm1, 0xF1
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm2, 0xFF
-extractps   [eax + 14h], xmm5, 0x01
-
+dpps        xmm5, xmm2, 0xF2
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm3, 0xFF
-extractps   [eax + 18h], xmm5, 0x01
-
+dpps        xmm5, xmm3, 0xF4
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm4, 0xFF
-extractps   [eax + 1Ch], xmm5, 0x01
+dpps        xmm5, xmm4, 0xF8
+orps        xmm6, xmm5
+
+movups      [eax + 10h], xmm6
+
 
 movups      xmm0, [edx + 20h]              ;load third row of A into xmm0
+xorps       xmm6, xmm6
 
 movups		xmm5, xmm0
-dpps        xmm5, xmm1, 0xFF
-extractps   [eax + 20h], xmm5, 0x01
-
+dpps        xmm5, xmm1, 0xF1
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm2, 0xFF
-extractps   [eax + 24h], xmm5, 0x01
-
+dpps        xmm5, xmm2, 0xF2
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm3, 0xFF
-extractps   [eax + 28h], xmm5, 0x01
-
+dpps        xmm5, xmm3, 0xF4
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm4, 0xFF
-extractps   [eax + 2Ch], xmm5, 0x01
+dpps        xmm5, xmm4, 0xF8
+orps        xmm6, xmm5
+
+movups      [eax + 20h], xmm6
+
 
 movups      xmm0, [edx + 30h]              ;load forth row of A into xmm0
+xorps       xmm6, xmm6
 
 movups		xmm5, xmm0
-dpps        xmm5, xmm1, 0xFF
-extractps   [eax + 30h], xmm5, 0x01
-
+dpps        xmm5, xmm1, 0xF1
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm2, 0xFF
-extractps   [eax + 34h], xmm5, 0x01
-
+dpps        xmm5, xmm2, 0xF2
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm3, 0xFF
-extractps   [eax + 38h], xmm5, 0x01
-
+dpps        xmm5, xmm3, 0xF4
+orps        xmm6, xmm5
 movups		xmm5, xmm0
-dpps        xmm5, xmm4, 0xFF
-extractps   [eax + 3Ch], xmm5, 0x01
+dpps        xmm5, xmm4, 0xF8
+orps        xmm6, xmm5
 
-mov     esp, ebp
+movups      [eax + 30h], xmm6
+
 pop     ebp
 ret
 
@@ -124,23 +127,24 @@ mov         eax, dword [ebp + 08h]   ;eax <- destination
 mov         edx, dword [ebp + 0Ch]   ;ebx <- matrixA
 mov         ecx, dword [ebp + 10h]   ;ecx <- vector
 
+xorps       xmm0, xmm0
+
 movups      xmm1, [ecx]
+movups      xmm2, [edx]
+movups      xmm3, [edx + 10h]
+movups      xmm4, [edx + 20h]
+movups      xmm5, [edx + 30h]
 
-movups      xmm0, [edx]
-dpps        xmm0, xmm1, 0xFF
-extractps   [eax], xmm0, 0x01
+dpps        xmm2, xmm1, 0xF1
+dpps        xmm3, xmm1, 0xF2
+dpps        xmm4, xmm1, 0xF4
+dpps        xmm5, xmm1, 0xF8
 
-movups      xmm0, [edx + 10h]
-dpps        xmm0, xmm1, 0xFF
-extractps   [eax + 04h], xmm0, 0x01
-
-movups      xmm0, [edx + 20h]
-dpps        xmm0, xmm1, 0xFF
-extractps   [eax + 08h], xmm0, 0x01
-
-movups      xmm0, [edx + 30h]
-dpps        xmm0, xmm1, 0xFF
-extractps   [eax + 0Ch], xmm0, 0x01
+orps        xmm0, xmm2
+orps        xmm0, xmm3
+orps        xmm0, xmm4
+orps        xmm0, xmm5
+movups      [eax], xmm0
 
 mov         esp, ebp
 pop         ebp
@@ -157,13 +161,13 @@ updateProjection:
 push        ebp
 mov         ebp, esp
 
-mov         eax, dword [ebp + 08h]
+mov         eax, dword [ebp + 08h] ; matrix
 
 fld         dword [ebp + 14h] ; height
 fld         dword [ebp + 10h] ; width
-fdivp        ;1/(width/height)
+fdivp                         ; 1/(width/height)
 
-fld         dword [ebp + 0Ch]      ;fov
+fld         dword [ebp + 0Ch] ; fov
 fldpi
 fmulp
 fld         dword [const_fp_180]
@@ -212,11 +216,11 @@ push        ebp
 mov         ebp, esp
 
 mov         eax, dword [ebp + 08h] ;matrix addr
-mov         ebx, dword [ebp + 0Ch] ;rotation addr
+mov         edx, dword [ebp + 0Ch] ;rotation addr
 
 sub         esp, 18h ;6*4 for sin cos
 
-fld         dword [ebx + 00h]
+fld         dword [edx + 00h]
 fldpi
 fmulp
 fdiv        dword [const_fp_180]
@@ -224,7 +228,7 @@ fsincos
 fstp        dword [ebp - 04h] ; cos(x)
 fstp        dword [ebp - 08h] ; sin(x)
 
-fld         dword [ebx + 04h]
+fld         dword [edx + 04h]
 fldpi
 fmulp
 fdiv        dword [const_fp_180]
@@ -232,7 +236,7 @@ fsincos
 fstp        dword [ebp - 0Ch] ; cos(y)
 fstp        dword [ebp - 10h] ; sin(y)
 
-fld         dword [ebx + 08h]
+fld         dword [edx + 08h]
 fldpi
 fmulp
 fdiv        dword [const_fp_180]
@@ -327,7 +331,6 @@ mov         ebp, esp
 mov         eax, dword [esp + 08h] ;matrix addr
 mov         edx, dword [esp + 0Ch] ;position addr
 
-
 fld1
 fst         dword [eax + 00h]
 mov         dword [eax + 04h], 0
@@ -361,6 +364,7 @@ push        ebp
 mov         ebp, esp
 ;W-NORMALIZE
 mov         eax, dword [ebp + 08h]  ;vector addr to eax
+
 fld         dword [eax + 0Ch]
 fabs
 fstp        dword [eax + 0Ch]
@@ -405,7 +409,7 @@ ret
 render:
 push        ebp
 mov         ebp, esp
-
+push        ebx
 ; int render(float* outputVerts, float* vertices, int nVecs,       ;08h, 0Ch, 10h
 ;             float* rotation, float* position, int rotationFlag,  ;14h, 18h, 1Ch
 ;             float fov, float width. float height,                ;20h, 24h, 28h
@@ -443,38 +447,40 @@ push        dword MVPMatrix
 call        multiplyMat4
 add         esp, 0Ch
 
-mov         ecx, dword [ebp + 10h] ; nVerts
-sub         ecx, 1
+mov         ebx, dword [ebp + 10h] ; nVerts
+sub         ebx, 1
 computeVerts:
-push        ecx
 
 mov         eax, dword [ebp + 0Ch] ; source vertices
-mov         ebx, ecx
-shl         ebx, 4
-add         eax, ebx
+mov         ecx, ebx
+shl         ecx, 4
+add         eax, ecx
 
 push        eax
 push        dword MVPMatrix ; MVP
 mov         eax,  dword [ebp + 08h]  ; res vertices
-add         eax, ebx
+add         eax, ecx
 push        eax
 
 call        multiplyMatVec4
 add         esp, 0Ch
 
+mov         ecx, ebx
+shl         ecx, 4
+add         eax, ecx
+
 push        dword [ebp + 28h]
 push        dword [ebp + 24h]
 mov         eax, dword [ebp + 08h] ; res vertices
-add         eax, ebx
+add         eax, ecx
 push        eax
 call        normalizeVert
 add         esp, 0Ch
 
-pop         ecx
-dec         ecx
-cmp         ecx, 0
+dec         ebx
+cmp         ebx, 0
 jge        computeVerts
 
-mov         esp, ebp
+pop         ebx
 pop         ebp
 ret
