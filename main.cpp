@@ -253,7 +253,6 @@ int main() {
 
         render((float*) vertsResult, (float*) vertices, verticesCount, rotation, position, 0, fov, width, height);
 
-
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
             for (uint32_t i = 0; i < facesCount; ++i) {
                 float* v1 = vertsResult[faces[i][0]];

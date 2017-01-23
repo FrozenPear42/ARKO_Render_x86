@@ -14,13 +14,12 @@ enable_language(ASM_NASM)
 set(SOURCE_FILES main.cpp render.asm)
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake-modules")
 
 add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 
-find_library(SFML 2.3)
-include_directories(${SFML_ROOT}/include)
-target_link_libraries(${EXECUTABLE_NAME}
-        ${SFML_ROOT}/libs/libsfml-system.so
-        ${SFML_ROOT}/libs/libsfml-window.so
-        ${SFML_ROOT}/libs/libsfml-graphics.so)
+find_package(SFML REQUIRED system window graphics)
+if(SFML_FOUND)
+    include_directories(${SFML_INCLUDE_DIR})
+    target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES})
+endif()
