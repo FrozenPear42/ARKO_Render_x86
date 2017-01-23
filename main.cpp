@@ -17,7 +17,7 @@ float MVPMatrix[16] = {0};
 const uint32_t verticesCount = 8;
 const uint32_t edgesCount = 12;
 const uint32_t facesCount = 6;
-float vertices[verticesCount][4] = {
+const float vertices[verticesCount][4] = {
         {-1, -1, -1, 1},
         {-1, 1,  -1, 1},
         {1,  1,  -1, 1},
@@ -26,7 +26,7 @@ float vertices[verticesCount][4] = {
         {-1, 1,  1,  1},
         {1,  1,  1,  1},
         {1,  -1, 1,  1},};
-uint8_t edges[edgesCount][2] = {
+const uint8_t edges[edgesCount][2] = {
         {0, 1},
         {1, 2},
         {2, 3},
@@ -39,7 +39,7 @@ uint8_t edges[edgesCount][2] = {
         {1, 5},
         {2, 6},
         {3, 7},};
-sf::Color edgesColor[edgesCount] = {
+const sf::Color edgesColor[edgesCount] = {
         sf::Color(0xFF, 0x55, 0xCC),
         sf::Color(0xFF, 0x55, 0xCC),
         sf::Color(0xFF, 0x55, 0xCC),
@@ -52,14 +52,14 @@ sf::Color edgesColor[edgesCount] = {
         sf::Color(0xFF, 0xCC, 0x00),
         sf::Color(0xFF, 0xCC, 0x00),
         sf::Color(0xFF, 0xCC, 0x00),};
-uint8_t faces[facesCount][4] = {
+const uint8_t faces[facesCount][4] = {
         {1, 2, 6, 5},
         {2, 3, 7, 6},
         {3, 0, 4, 7},
         {0, 1, 5, 4},
         {0, 1, 2, 3},
         {4, 5, 6, 7},};
-sf::Color facesColor[facesCount] = {
+const sf::Color facesColor[facesCount] = {
         sf::Color(0xFF, 0xCC, 0x10),
         sf::Color(0xFF, 0xCC, 0x20),
         sf::Color(0xFF, 0xCC, 0x30),
@@ -67,7 +67,8 @@ sf::Color facesColor[facesCount] = {
         sf::Color(0xFF, 0x55, 0xCC),
         sf::Color(0x55, 0x55, 0xCC),};
 
-float vertsResult[8][4] = {0};
+float vertsResult[verticesCount][4] = {0};
+
 float rotation[3] = {0, 0, 0};
 float position[3] = {0, 0, 5};
 
