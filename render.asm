@@ -10,7 +10,6 @@ extern MVPMatrix
 extern projectionMatrix
 extern rotationMatrix
 extern translationMatrix
-extern width
 
 section .text
 
@@ -98,7 +97,7 @@ orps        xmm0,  xmm10
 orps        xmm0,  xmm11
 movups      [rdi + 30h], xmm0
 
-pop     rbp
+pop         rbp
 ret
 
 multiplyMatVec4:
@@ -367,7 +366,7 @@ fmul        dword [rbp - 04h]      ;* width
 fmul        dword [const_fp_half]
 fstp        dword [rdi + 00h]
 
-fld1        
+fld1
 fadd        dword [rdi + 04h]      ;1 + y
 movss       dword [rbp - 04h], xmm1
 fmul        dword [rbp - 04h]      ;* height
@@ -440,10 +439,9 @@ lea         rdi, [rdi + 8*rcx]
 movss       xmm0, xmm14
 movss       xmm1, xmm15
 call        normalizeVert
-tutaj:
-dec        rcx
-cmp        rcx, 0
-jge        computeVerts
+dec         rcx
+cmp         rcx, 0
+jge         computeVerts
 
 mov         rsp, rbp
 pop         rbp
