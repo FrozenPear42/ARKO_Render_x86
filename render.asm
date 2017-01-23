@@ -15,11 +15,11 @@ extern width
 section .text
 
 multiplyMat4:
-push        ebp
-mov         ebp, esp
-mov         eax, dword [ebp + 08h]   ;eax <- destination
-mov         edx, dword [ebp + 0Ch]   ;edx <- matrixA
-mov         ecx, dword [ebp + 10h]   ;ecx <- matrixB
+push        rbp
+mov         rbp, rsp
+mov         eax, dword [rbp + 08h]   ;eax <- destination
+mov         edx, dword [rbp + 0Ch]   ;edx <- matrixA
+mov         ecx, dword [rbp + 10h]   ;ecx <- matrixB
 
 insertps    xmm1, [ecx + 00h], 0x0E			;0b--ppzzzz load first column of B into xmm1
 insertps    xmm1, [ecx + 10h], 0x10           
@@ -116,16 +116,16 @@ orps        xmm6, xmm5
 
 movups      [eax + 30h], xmm6
 
-pop     ebp
+pop     rbp
 ret
 
 multiplyMatVec4:
-push        ebp
-mov         ebp, esp
+push        rbp
+mov         rbp, rsp
 
-mov         eax, dword [ebp + 08h]   ;eax <- destination
-mov         edx, dword [ebp + 0Ch]   ;ebx <- matrixA
-mov         ecx, dword [ebp + 10h]   ;ecx <- vector
+mov         eax, dword [rbp + 08h]   ;eax <- destination
+mov         edx, dword [rbp + 0Ch]   ;ebx <- matrixA
+mov         ecx, dword [rbp + 10h]   ;ecx <- vector
 
 xorps       xmm0, xmm0
 
@@ -146,8 +146,7 @@ orps        xmm0, xmm4
 orps        xmm0, xmm5
 movups      [eax], xmm0
 
-mov         esp, ebp
-pop         ebp
+pop         rbp
 ret
 
 ;float projectionMatrix[16] = {
@@ -158,16 +157,16 @@ ret
 ;};
 ; matrix, fov, width, height
 updateProjection:
-push        ebp
-mov         ebp, esp
+push        rbp
+mov         rbp, rsp
 
-mov         eax, dword [ebp + 08h] ; matrix
+mov         eax, dword [rbp + 08h] ; matrix
 
-fld         dword [ebp + 14h] ; height
-fld         dword [ebp + 10h] ; width
+fld         dword [rbp + 14h] ; height
+fld         dword [rbp + 10h] ; width
 fdivp                         ; 1/(width/height)
 
-fld         dword [ebp + 0Ch] ; fov
+fld         dword [rbp + 0Ch] ; fov
 fldpi
 fmulp
 fld         dword [const_fp_180]
@@ -206,17 +205,17 @@ fstp        dword [eax + 2Ch]
 fld1
 fstp        dword [eax + 38h]
 
-mov         esp, ebp
-pop         ebp
+mov         rsp, rbp
+pop         rbp
 ret
 
 
 updateRotation:
-push        ebp
-mov         ebp, esp
+push        rbp
+mov         rbp, rsp
 
-mov         eax, dword [ebp + 08h] ;matrix addr
-mov         edx, dword [ebp + 0Ch] ;rotation addr
+mov         eax, dword [rbp + 08h] ;matrix addr
+mov         edx, dword [rbp + 0Ch] ;rotation addr
 
 sub         esp, 18h ;6*4 for sin cos
 
@@ -225,24 +224,24 @@ fldpi
 fmulp
 fdiv        dword [const_fp_180]
 fsincos
-fstp        dword [ebp - 04h] ; cos(x)
-fstp        dword [ebp - 08h] ; sin(x)
+fstp        dword [rbp - 04h] ; cos(x)
+fstp        dword [rbp - 08h] ; sin(x)
 
 fld         dword [edx + 04h]
 fldpi
 fmulp
 fdiv        dword [const_fp_180]
 fsincos
-fstp        dword [ebp - 0Ch] ; cos(y)
-fstp        dword [ebp - 10h] ; sin(y)
+fstp        dword [rbp - 0Ch] ; cos(y)
+fstp        dword [rbp - 10h] ; sin(y)
 
 fld         dword [edx + 08h]
 fldpi
 fmulp
 fdiv        dword [const_fp_180]
 fsincos
-fstp        dword [ebp - 14h] ; cos(z)
-fstp        dword [ebp - 18h] ; sin(z)
+fstp        dword [rbp - 14h] ; cos(z)
+fstp        dword [rbp - 18h] ; sin(z)
 
 ;#############################################################################################
 ;# cos(y)cos(z)   sin(x)sin(y)cos(z) - cos(x)sin(z)   cos(x)sin(y)cos(z) + sin(x)sin(z)  0   #
@@ -251,23 +250,23 @@ fstp        dword [ebp - 18h] ; sin(z)
 ;#      0                       0                                     0                  1   #
 ;#############################################################################################
 
-fld         dword [ebp - 0Ch] ;cos(y)
-fmul        dword [ebp - 14h] ;*cos(z)
+fld         dword [rbp - 0Ch] ;cos(y)
+fmul        dword [rbp - 14h] ;*cos(z)
 fstp        dword [eax + 00h]
 
-fld         dword [ebp - 08h] ; sin(x)
-fmul        dword [ebp - 10h] ;*sin(y)
-fmul        dword [ebp - 14h] ;*cos(z)
-fld         dword [ebp - 04h] ; cos(x)
-fmul        dword [ebp - 18h] ;*sin(z)
+fld         dword [rbp - 08h] ; sin(x)
+fmul        dword [rbp - 10h] ;*sin(y)
+fmul        dword [rbp - 14h] ;*cos(z)
+fld         dword [rbp - 04h] ; cos(x)
+fmul        dword [rbp - 18h] ;*sin(z)
 fsubp
 fstp        dword [eax + 04h]
 
-fld         dword [ebp - 04h] ; cos(x)
-fmul        dword [ebp - 10h] ;*sin(y)
-fmul        dword [ebp - 14h] ;*cos(z)
-fld         dword [ebp - 08h] ; sin(x)
-fmul        dword [ebp - 18h] ;*sin(z)
+fld         dword [rbp - 04h] ; cos(x)
+fmul        dword [rbp - 10h] ;*sin(y)
+fmul        dword [rbp - 14h] ;*cos(z)
+fld         dword [rbp - 08h] ; sin(x)
+fmul        dword [rbp - 18h] ;*sin(z)
 faddp
 fstp        dword [eax + 08h]
 
@@ -275,39 +274,39 @@ mov         dword [eax + 0Ch], 0 ; 0
 
 ;# cos(y)sin(z)   sin(x)sin(y)sin(z) + cos(x)cos(z)   cos(x)sin(y)sin(z) - sin(x)cos(z)  0   #
 
-fld         dword [ebp - 0Ch] ;cos(y)
-fmul        dword [ebp - 18h] ;*sin(z)
+fld         dword [rbp - 0Ch] ;cos(y)
+fmul        dword [rbp - 18h] ;*sin(z)
 fstp        dword [eax + 10h]
 
-fld         dword [ebp - 08h] ; sin(x)
-fmul        dword [ebp - 10h] ;*sin(y)
-fmul        dword [ebp - 18h] ;*sin(z)
-fld         dword [ebp - 04h] ; cos(x)
-fmul        dword [ebp - 14h] ;*cos(z)
+fld         dword [rbp - 08h] ; sin(x)
+fmul        dword [rbp - 10h] ;*sin(y)
+fmul        dword [rbp - 18h] ;*sin(z)
+fld         dword [rbp - 04h] ; cos(x)
+fmul        dword [rbp - 14h] ;*cos(z)
 faddp
 fstp        dword [eax + 14h]
 
-fld         dword [ebp - 04h] ; cos(x)
-fmul        dword [ebp - 10h] ;*sin(y)
-fmul        dword [ebp - 18h] ;*sin(z)
-fld         dword [ebp - 08h] ; sin(x)
-fmul        dword [ebp - 14h] ;*cos(z)
+fld         dword [rbp - 04h] ; cos(x)
+fmul        dword [rbp - 10h] ;*sin(y)
+fmul        dword [rbp - 18h] ;*sin(z)
+fld         dword [rbp - 08h] ; sin(x)
+fmul        dword [rbp - 14h] ;*cos(z)
 fsubp
 fstp        dword [eax + 18h]
 
 mov         dword [eax + 1Ch], 0 ; 0
 
 ;#   -sin(y)	          sin(x)cos(y)                          cos(x)cos(y)            0   #    
-fld         dword [ebp - 10h] ;sin(y)
+fld         dword [rbp - 10h] ;sin(y)
 fchs
 fstp        dword [eax + 20h]
 
-fld         dword [ebp - 08h] ; sin(x)
-fmul        dword [ebp - 0Ch] ;*cos(y)
+fld         dword [rbp - 08h] ; sin(x)
+fmul        dword [rbp - 0Ch] ;*cos(y)
 fstp        dword [eax + 24h]
 
-fld         dword [ebp - 04h] ; cos(x)
-fmul        dword [ebp - 0Ch] ;*cos(z)
+fld         dword [rbp - 04h] ; cos(x)
+fmul        dword [rbp - 0Ch] ;*cos(z)
 fstp        dword [eax + 28h]
 
 mov         dword [eax + 2Ch], 0 ; 0
@@ -320,13 +319,12 @@ mov         dword [eax + 38h], 0 ; 0
 fld1
 fstp         dword [eax + 3Ch]   ; 1
 
-mov         esp, ebp
-pop         ebp
+pop         rbp
 ret
 
 updatePosition:
-push        ebp
-mov         ebp, esp
+push        rbp
+mov         rbp, rsp
 
 mov         eax, dword [esp + 08h] ;matrix addr
 mov         edx, dword [esp + 0Ch] ;position addr
@@ -355,15 +353,14 @@ mov         dword [eax + 34h], 0
 mov         dword [eax + 38h], 0
 fstp        dword [eax + 3Ch]
 
-mov         esp, ebp
-pop         ebp
+pop         rbp
 ret
 
 normalizeVert:
-push        ebp
-mov         ebp, esp
+push        rbp
+mov         rbp, rsp
 ;W-NORMALIZE
-mov         eax, dword [ebp + 08h]  ;vector addr to eax
+mov         eax, dword [rbp + 08h]  ;vector addr to eax
 
 fld         dword [eax + 0Ch]
 fabs
@@ -387,13 +384,13 @@ fstp        dword [eax + 0Ch]
 ; CLIP TO VIEWPORT
 fld1        
 fadd        dword [eax + 00h]      ;1 + x
-fmul        dword [ebp + 0Ch]      ;* width
+fmul        dword [rbp + 0Ch]      ;* width
 fmul        dword [const_fp_half]
 fstp        dword [eax + 00h]
 
 fld1        
 fadd        dword [eax + 04h]      ;1 + y
-fmul        dword [ebp + 10h]      ;* height
+fmul        dword [rbp + 10h]      ;* height
 fmul        dword [const_fp_half]
 fstp        dword [eax + 04h]
 
@@ -402,38 +399,34 @@ fadd        dword [eax + 08h]      ;1 + z
 fmul        dword [const_fp_half]
 fstp        dword [eax + 08h]
 
-mov         esp, ebp
-pop         ebp
+pop         rbp
 ret
 
 render:
-push        ebp
-mov         ebp, esp
-push        ebx
+push        rbp
+mov         rbp, rsp
+push        rbx
 ; int render(float* outputVerts, float* vertices, int nVecs,       ;08h, 0Ch, 10h
 ;             float* rotation, float* position, int rotationFlag,  ;14h, 18h, 1Ch
 ;             float fov, float width. float height,                ;20h, 24h, 28h
 ;             );
 
 ;create rotation and translation matrices
-push        dword [ebp + 14h] ; push rotation
-push        dword rotationMatrix ; push rotationMatrix
+mov         rdi, qword [rbp + 14h]       ; rotation
+mov         rsi, qword rotationMatrix    ; rotationMatrix
 call        updateRotation
-add         esp, 08h
 
-push        dword [ebp + 18h] ; push translation
-push        dword translationMatrix ; push translationMatrix
+mov         rdi, qword [rbp + 18h]       ; translation
+mov         rsi, qword translationMatrix ; translationMatrix
 call        updatePosition
-add         esp, 08h
 
-mov         eax, dword [ebp + 38h]
+mov         eax, dword [rbp + 38h]
 
-push        dword [ebp + 28h]       ;push height
-push        dword [ebp + 24h]       ;push width
-push        dword [ebp + 20h]       ;push fov
-push        dword projectionMatrix  ;push matrix
+movss       xmm0, dword [rbp + 28h]       ;push height
+movss       xmm1, dword [rbp + 24h]       ;push width
+movss       xmm2, dword [rbp + 20h]       ;push fov
+mov         rdi,  qword projectionMatrix  ;push matrix
 call        updateProjection
-add         esp, 10h
 
 push        dword rotationMatrix
 push        dword translationMatrix
@@ -447,40 +440,38 @@ push        dword MVPMatrix
 call        multiplyMat4
 add         esp, 0Ch
 
-mov         ebx, dword [ebp + 10h] ; nVerts
+mov         ebx, dword [rbp + 10h] ; nVerts
 sub         ebx, 1
 computeVerts:
 
-mov         eax, dword [ebp + 0Ch] ; source vertices
+mov         eax, dword [rbp + 0Ch] ; source vertices
 mov         ecx, ebx
 shl         ecx, 4
 add         eax, ecx
 
-push        eax
-push        dword MVPMatrix ; MVP
-mov         eax,  dword [ebp + 08h]  ; res vertices
+mov         edi, eax
+mov         rsi, qword MVPMatrix ; MVP
+mov         eax, dword [rbp + 08h]  ; res vertices
 add         eax, ecx
-push        eax
+mov         rsi, rax
 
 call        multiplyMatVec4
-add         esp, 0Ch
 
 mov         ecx, ebx
 shl         ecx, 4
 add         eax, ecx
 
-push        dword [ebp + 28h]
-push        dword [ebp + 24h]
-mov         eax, dword [ebp + 08h] ; res vertices
+movss       xmm0, dword [rbp + 28h]
+movss       xmm1, dword [rbp + 24h]
+mov         eax, dword [rbp + 08h] ; res vertices
 add         eax, ecx
-push        eax
+mov         edi, eax
 call        normalizeVert
-add         esp, 0Ch
 
 dec         ebx
 cmp         ebx, 0
 jge        computeVerts
 
-pop         ebx
-pop         ebp
+pop         rbx
+pop         rbp
 ret
