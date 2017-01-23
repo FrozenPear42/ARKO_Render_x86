@@ -121,7 +121,7 @@ int main() {
     sf::Font font;
     std::chrono::time_point<std::chrono::system_clock> last;
 
-    sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86"));
+    sf::RenderWindow window(sf::VideoMode((unsigned int) width, (unsigned int) height), sf::String("ARKO_Render_x86_64"));
     window.setFramerateLimit(60);
     if (!font.loadFromFile("fira.ttf"))
         throw std::runtime_error("Ups, no font...");
