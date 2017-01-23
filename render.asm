@@ -10,7 +10,6 @@ extern MVPMatrix
 extern projectionMatrix
 extern rotationMatrix
 extern translationMatrix
-extern width
 
 section .text
 
@@ -96,7 +95,6 @@ dpps        xmm5, xmm4, 0xF8
 orps        xmm6, xmm5
 
 movups      [eax + 20h], xmm6
-
 
 movups      xmm0, [edx + 30h]              ;load forth row of A into xmm0
 xorps       xmm6, xmm6
@@ -189,7 +187,6 @@ fld         dword [f_near]
 fsubp
 fdivp
 fstp        dword [eax + 28h]
-
 
 fld         dword [f_far]
 fld         dword [f_near]
