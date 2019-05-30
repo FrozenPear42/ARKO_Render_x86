@@ -1,3 +1,5 @@
+DEFAULT REL
+
 global render
 
 section .data

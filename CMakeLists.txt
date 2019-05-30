@@ -7,8 +7,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE DEBUG)
 
 set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
-set(CMAKE_C_FLAGS -m64)
-set(CMAKE_CXX_FLAGS -m64)
+set(CMAKE_C_FLAGS "-m64 -fPIC")
+set(CMAKE_CXX_FLAGS "-m64 -fPIC")
 enable_language(ASM_NASM)
 
 set(SOURCE_FILES main.cpp render.asm)
